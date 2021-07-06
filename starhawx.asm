@@ -44,6 +44,9 @@ hawktype4b = 77
 hawktype4c = 78 
 hawktype4d = 79
 
+forcefieldleft = $2800 + (78*8)
+forcefieldright = $2800 + (79*8)
+
 ;Title and game screen data
 titlescreendata = $3000 
 titlecolourdata = $33e8 
@@ -88,6 +91,41 @@ justplaygame = 1 ;Just launch game
           !basic (2064)
 ;=========================================
           *=$0810
+          
+          ;Onetime anim backup grab 
+          ldx #$00
+backupchars
+          lda $2800+(64*8),x
+          sta hawk1backup1,x 
+          lda $2800+(66*8),x
+          sta hawk1backup2,x
+          lda $2800+(68*8),x
+          sta hawk2backup1,x
+          lda $2800+(70*8),x
+          sta hawk2backup2,x
+          lda $2800+(72*8),x
+          sta hawk3backup1,x
+          lda $2800+(74*8),x
+          sta hawk3backup2,x
+          ;bottom layers
+          lda $2800+(80*8),x
+          sta hawk1backup3,x 
+          lda $2800+(82*8),x
+          sta hawk1backup4,x
+          lda $2800+(84*8),x
+          sta hawk2backup3,x
+          lda $2800+(86*8),x
+          sta hawk2backup4,x
+          lda $2800+(88*8),x
+          sta hawk3backup3,x
+          lda $2800+(90*8),x
+          sta hawk3backup4,x
+          inx
+          cpx #$10
+          bne backupchars
+          
+          
+          
 !ifdef justplaygame {          
           ;Title screen code
           jmp gamestart
@@ -332,7 +370,7 @@ clearsid  lda #$00
           ;Draw game screen 
           
           ;Setup IRQ raster interrupts
-          lda #$fb
+          ldx #$fb
           txs
           ldx #<girq1
           ldy #>girq1
@@ -435,6 +473,11 @@ yelblured lda #$02
           sta $d017
           sta $d01b
           sta $d01d
+          
+          lda #$56
+          sta objpos+4
+          lda #$40
+          sta objpos+5
          
 ;-------------------------------------------          
 ;Main game loop control
@@ -443,11 +486,15 @@ gameloop  lda #0
           sta rt
           cmp rt
           beq *-3
+         
           jsr expandmsb
+          jsr animator
+          jsr spritemode
           jsr movehawx
           jsr playercontrol
           jsr playerbulletcontrol
           jsr bullettohawkchars
+          jsr testswoop
           jmp gameloop
 ;--------------------------------------------
 ;Expand the game sprite position so that all
@@ -471,7 +518,8 @@ eloop     lda objpos+1,x
 ;--------------------------------------------          
 ;Move those wretched space hawx
 ;--------------------------------------------
-movehawx  lda fleetdelay
+movehawx  ;jsr testswoopers
+          lda fleetdelay
           cmp #2
           beq fleetdelayok
           inc fleetdelay
@@ -479,8 +527,10 @@ movehawx  lda fleetdelay
 fleetdelayok
           lda #0
           sta fleetdelay
+         
           lda fleetdir
           beq movefleetleft
+          
           jmp movefleetright
 
           ;Move the entire hawk 
@@ -493,6 +543,7 @@ movefleetleft
           and #7
           sta fleetpos
           bcs noshift1
+          jsr animfleet
           jmp shiftfleetback
 noshift2  rts
           
@@ -504,6 +555,7 @@ movefleetright
           and #7
           sta fleetpos
           bcs noshift2
+          jsr animfleet
           jmp shiftfleetforward
           rts
           
@@ -528,7 +580,7 @@ shiftfleetback ;Check for spacebar
           jsr checkspacebarleft
           lda fleet4row2+1 
           jsr checkspacebarleft
-
+          
           ldx #$00
 pullbackhawx1char
           lda fleet1row1+1,x
@@ -564,6 +616,7 @@ pullbackhawx1char
           sta fleet3row2+39
           sta fleet4row1+39
           sta fleet4row2+39
+         
           rts 
           
           ;Check if very first character for each fleet row is
@@ -634,6 +687,7 @@ pushforwardhawx1char
           sta fleet3row2
           sta fleet4row1
           sta fleet4row2 
+         
           rts
 
           ;Once again check for spacebar character 
@@ -647,6 +701,87 @@ checkspacebarright
 skipdirswaptoleft          
           rts 
 
+;Switch fleet animation - basically we swap enemy type objects 
+;with other object types.
+
+animfleet   lda animmode 
+            beq switchfleetanim1
+            jmp switchfleetanim2
+            
+switchfleetanim1
+            ldx #$00
+switchcharanim1
+            lda hawk1backup2,x
+            sta $2800+(64*8),x
+            lda hawk1backup1,x
+            sta $2800+(66*8),x
+            lda hawk2backup2,x
+            sta $2800+(68*8),x
+            lda hawk2backup1,x
+            sta $2800+(70*8),x
+            lda hawk3backup2,x
+            sta $2800+(72*8),x
+            lda hawk3backup1,x
+            sta $2800+(74*8),x
+            lda hawk1backup4,x
+            sta $2800+(80*8),x
+            lda hawk1backup3,x
+            sta $2800+(82*8),x
+            lda hawk2backup4,x
+            sta $2800+(84*8),x
+            lda hawk2backup3,x
+            sta $2800+(86*8),x
+            lda hawk3backup4,x
+            sta $2800+(88*8),x
+            lda hawk3backup3,x
+            sta $2800+(90*8),x
+            inx
+            cpx #16
+            bne switchcharanim1
+            lda #1
+            sta animmode
+            rts
+            
+checkchartype            
+                        
+            rts
+            
+
+switchfleetanim2
+            ldx #$00
+switchcharanim2
+            lda hawk1backup1,x
+            sta $2800+(64*8),x
+            lda hawk1backup2,x
+            sta $2800+(66*8),x
+            lda hawk2backup1,x
+            sta $2800+(68*8),x
+            lda hawk2backup2,x
+            sta $2800+(70*8),x
+            lda hawk3backup1,x
+            sta $2800+(72*8),x
+            lda hawk3backup2,x
+            sta $2800+(74*8),x
+            lda hawk1backup3,x
+            sta $2800+(80*8),x
+            lda hawk1backup4,x
+            sta $2800+(82*8),x
+            lda hawk2backup3,x
+            sta $2800+(84*8),x
+            lda hawk2backup4,x
+            sta $2800+(86*8),x
+            lda hawk3backup3,x
+            sta $2800+(88*8),x
+            lda hawk3backup4,x
+            sta $2800+(90*8),x
+            inx
+            cpx #16
+            bne switchcharanim2
+            lda #0
+            sta animmode
+            rts
+                        
+            
 ;----------------------------------------
 ;Player control 
 ;----------------------------------------
@@ -739,6 +874,8 @@ storebullpos
 ;hawk chars
 ;-----------------------------------------
 
+           jsr spritetosprite 
+           
 bullettohawkchars
            lda objpos+3
            sec
@@ -849,17 +986,229 @@ killhawkright
             sta objpos+2
             rts
            
+            ;Enemy sprite to sprite 
+            ;collision 
+            
+spritetosprite 
+            rts
+;----------------------------------------
+;Animatior - for game sprites and also 
+;characters
+;----------------------------------------
 
+animator    jsr flashcolours
+            lda animdelay
+            cmp #4
+            beq animmain
+            inc animdelay
+            rts
+animmain    lda #0
+            sta animdelay
+            jsr animforcefield ;Animate forcefield chars
+            ldx animpointer
+            lda hawkanim1,x
+            sta hawktype1spr
+            lda hawkanim2,x
+            sta hawktype2spr
+            lda hawkanim3,x
+            sta hawktype3spr
+            inx
+            cpx #2
+            beq resethawkanim
+            inc animpointer
+            rts
+resethawkanim
+            ldx #0
+            stx animpointer
+            rts
+            
+            ;Animate the forcefield characters
+            
+animforcefield            
+            ldx #$07
+animfield   lda forcefieldleft,x
+            asl
+            rol forcefieldleft,x
+            asl
+            rol forcefieldleft,x
+            lda forcefieldright,x
+            lsr
+            ror forcefieldright,x 
+            lsr
+            ror forcefieldright,x
+            dex
+            bpl animfield
+            rts
+            
+            ;Flash the colour of the forcefield 
+            
+flashcolours 
+            jsr paintforcefield
+            ldx colourpointer
+            lda colourtable1,x
+            sta colourstore1
+            lda colourtable2,x
+            sta colourstore2
+            inx
+            cpx #colourtable1end-colourtable1 
+            beq resetcolourflash
+            inc colourpointer
+            rts
+resetcolourflash 
+            ldx #0
+            stx colourpointer
+            rts
+paintforcefield
+            ldx #$00
+paintloop   lda colourstore1
+            sta $d800+40,x 
+            lda colourstore2
+            sta $d800+520,x
+            inx
+            cpx #$28
+            bne paintloop
+            rts
+
+;----------------------------------
+;Self-modifying sprite pointers 
+;for space hawx.
+;----------------------------------
+            
+spritemode
+            jsr testhawk1
+            jsr testhawk2
+            jsr testhawk3
+            jsr testhawk4
+            jsr testbull
+            jsr testegg
+          
+            rts
+            
+testhawk1
+hawk1sm     lda hawktype1spr
+            sta $07fa
+            rts
+testhawk2            
+hawk2sm     lda hawktype2spr
+            sta $07fb 
+            rts
+testhawk3            
+hawk3sm     lda hawktype3spr
+            sta $07fc
+            rts
+testhawk4            
+hawk4sm     lda hawktype1spr
+            sta $07fd 
+            rts
+testbull            
+            lda hawkbullet
+            sta $07fe 
+            lda objpos+$0d
+            clc
+            adc #3
+            sta objpos+$0d
+            lda #$30
+            sta objpos+$0c
+            
+            rts
+testegg            
+            lda bonusegg
+            sta $07ff
+
+            lda objpos+$0f 
+            clc
+            adc #4
+            sta objpos+$0f 
+            lda #$60
+            sta objpos+$0e
+            lda #$05
+            sta $d02e
+            rts
+            
+            
+            
+            
+;----------------------------------------
+;Test swooping hawks            
+;----------------------------------------
+
+testswoop 
+            jsr testswoop1
+            jsr testswoop2
+            jsr testswoop3
+            jsr testswoop4
+            rts
+            
+;Macro code to make enemies fall
+
+!macro configfall yposition {
+          lda yposition
+          clc
+          adc #1
+          sta yposition
+          
+}
+  
+            
+;Macro code to test enemy direction and speed 
+
+!macro confighawkswoop xdirection, positionx, speedx {
+          
+           lda xdirection
+           cmp #1
+           beq .shifthawkright 
+           lda positionx
+           sec
+           sbc speedx
+           cmp #leftboundary 
+           bcs .leftok
+           lda #1
+           sta xdirection
+           lda #leftboundary
+.leftok    sta positionx
+           rts 
+
+.shifthawkright 
+          lda positionx 
+          clc
+          adc speedx
+          cmp #rightboundary 
+          bcc .rightok 
+          lda #0
+          sta xdirection
+          lda #rightboundary
+.rightok  sta positionx          
+          rts
+           
+}            
+testswoop1  +configfall objpos+5
+            +confighawkswoop enemy1dir, objpos+4, enemy1xspeed
+testswoop2  +configfall objpos+7
+            +confighawkswoop enemy2dir, objpos+6, enemy2xspeed
+testswoop3  +configfall objpos+9
+            +confighawkswoop enemy3dir, objpos+8, enemy3xspeed
+testswoop4  +configfall objpos+11
+            +confighawkswoop enemy4dir, objpos+10, enemy4xspeed
+            
+  
+
+
+;Hawk SPACE INVADER type of animation while moving 
+;across the screen inside the forcefield
+
+animmode !byte 0
 
 fleetdir !byte 0 ;Set direction to move the birds accordingly 0 = left, 1 = right
 fleetpos !byte 0
 fleetdelay !byte 0      
-egg !byte $88
+animdelay !byte 0
+animpointer !byte 0
+bonusegg !byte $88
 
 ;Animated swooping hawk objects
-hawktype1 !byte $89 
-hawktype2 !byte $8b 
-hawktype3 !byte $8c 
+hawktype1spr !byte $89 
+hawktype2spr !byte $8b 
+hawktype3spr !byte $8c 
 
 ;Animation sprites for the players 
 playership !byte $80    
@@ -880,6 +1229,19 @@ hawkbullet !byte $8f
 hawkanim1   !byte $89,$8a 
 hawkanim2   !byte $8b,$8c 
 hawkanim3   !byte $8d,$8e 
+
+;Hawk movement direction
+
+enemy1dir !byte 0
+enemy2dir !byte 1
+enemy3dir !byte 0
+enemy4dir !byte 1
+
+
+enemy1xspeed !byte 1
+enemy2xspeed !byte 2
+enemy3xspeed !byte 3
+enemy4xspeed !byte 4
 
 ;Score sprites 
 points100 !byte $8f
@@ -904,9 +1266,38 @@ waveclear2 !byte $a8
 waveclear3 !byte $a9
 waveclear4 !byte $aa
 
-objpos !fill 8,0
+objpos !fill 16,0
+hawk1backup1 !fill 16,0
+hawk1backup2 !fill 16,0
+hawk1backup3 !fill 16,0
+hawk1backup4 !fill 16,0
+hawk2backup1 !fill 16,0
+hawk2backup2 !fill 16,0
+hawk2backup3 !fill 16,0
+hawk2backup4 !fill 16,0
+hawk3backup1 !fill 16,0
+hawk3backup2 !fill 16,0
+hawk3backup3 !fill 16,0
+hawk3backup4 !fill 16,0
+;Forcefield colour store pointers
+
+colourpointer !byte 0
+colourstore1 !byte 0
+colourstore2 !byte 0
+
+;Colour table for the forcefield 
+
+colourtable1 !byte $06,$02,$04,$05,$03,$07,$01,$07,$03,$05,$04,$02
+colourtable1end
+colourtable2 !byte $01,$07,$03,$05,$04,$02,$06,$02,$04,$05,$03,$07
+
+
+;Sprite collision table
+collider !fill 8,0
 
 !fill $ff,0
+
+
 
 ;Charset collision row table
 
