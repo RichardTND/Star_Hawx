@@ -11,7 +11,7 @@
 ;=========================================
 
   !source "variables.asm"
-
+  !source "macros.asm"
 
           ;Generate program
 
@@ -70,8 +70,8 @@ backupchars
           *=$2800
           ;Import charset data 
           !bin "bin\charset.chr"
-          *=$2fc0
-          !fill $40,0
+         ; *=$2fc0
+         ; !fill $40,0
 ;=========================================
           ;Import title screen data
           *=$3000

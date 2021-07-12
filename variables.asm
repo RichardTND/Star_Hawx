@@ -1,12 +1,15 @@
 
 ;Variables and pointers
 
+scorepos = $0406
+levelpos = $040f 
+livespos = $0418
+hiscorepos = $0422
+
 ;Zero page pointers
 
-screenlostore = $02
-screenhistore = $03
-screenlostore2 = $04
-screenhistore2 = $05
+screenlostore = $72
+screenhistore = $73
 
 ;Sprite/char collision size
 
@@ -74,6 +77,13 @@ fleet3row1 = $0540
 fleet3row2 = $0540+40
 fleet4row1 = $05b8
 fleet4row2 = $05b8+40
+
+fleet1spriteypos = $42
+fleet2spriteypos = $5a-2
+fleet3spriteypos = $72-2 
+fleet4spriteypos = $8a-2
+
+
 
 ;Sprite X position boundary for both player 
 ;eggs, and swooping birds 

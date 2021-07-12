@@ -5,12 +5,14 @@
 gamestart
           ;Like with the front end switch 
           ;off all interrupts 
+          lda #$35
+          sta $01
           sei
-          ldx #$31
-          ldy #$ea
+          ldx #$48
+          ldy #$ff
           lda #$81
-          stx $0314
-          sty $0315
+          stx $fffe
+          sty $ffff
           sta $dc0d
           sta $dd0d
           lda #$00
@@ -19,6 +21,7 @@ gamestart
           sta $d019
           sta $d021
           sta $d020
+          
           
           lda #7
           sta $d022
@@ -44,8 +47,12 @@ clearsid  lda #$00
           ldx #<girq1
           ldy #>girq1
           lda #$7f
-          stx $0314
-          sty $0315
+          stx $fffe
+          sty $ffff
+          ldx #<nmi 
+          ldy #>nmi
+          stx $fffa
+          sty $fffb
           sta $dc0d
           sta $dd0d
           lda #$36
@@ -61,7 +68,12 @@ clearsid  lda #$00
           jmp gamerestart
           
           ;Main IRQ raster interrupt
-girq1     inc $d019
+girq1     pha
+          txa
+          pha
+          tya
+          pha
+          asl $d019
           lda $dc0d
           sta $dd0d
           lda #$f8
@@ -69,7 +81,12 @@ girq1     inc $d019
           lda #1
           sta rt
           jsr musicplay
-          jmp $ea7e
+          pla
+          tay
+          pla
+          tax
+          pla
+nmi       rti          
           
 gamerestart          
           
@@ -147,7 +164,8 @@ yelblured lda #$02
           sta enemy2xspeed
           sta enemy3xspeed
           sta enemy4xspeed
-          
+          sta spawnstopenabled
+          sta spawntime
          
          
 ;-------------------------------------------          
@@ -168,6 +186,7 @@ gameloop  lda #0
           jsr testswoop
           jsr spritetosprite
           jsr randomselector
+          
           jmp gameloop
 ;--------------------------------------------
 ;Expand the game sprite position so that all
@@ -576,41 +595,65 @@ bullettohawkchars
 bgcloop    lda (screenlostore),y 
            cmp #hawktype1a
            bne nothawk1a 
+           lda #1
+           sta scoretype
            jmp killhawkleft
 nothawk1a  cmp #hawktype1b 
-           bne nothawk1b 
+           bne nothawk1b
+           lda #1
+           sta scoretype 
            jmp killhawkright 
 nothawk1b  cmp #hawktype1c 
            bne nothawk1c 
+           lda #1
+           sta scoretype
            jmp killhawkleft 
 nothawk1c  cmp #hawktype1d 
            bne nothawk1d
+           lda #1
+           sta scoretype
            jmp killhawkright
            
 nothawk1d  cmp #hawktype2a
-           bne nothawk2a 
+           bne nothawk2a
+           lda #2
+           sta scoretype 
            jmp killhawkleft 
 nothawk2a  cmp #hawktype2b 
-           bne nothawk2b 
+           bne nothawk2b
+           lda #2
+           sta scoretype 
            jmp killhawkright 
 nothawk2b  cmp #hawktype2c 
-           bne nothawk2c 
+           bne nothawk2c
+           lda #2
+           sta scoretype 
            jmp killhawkleft 
 nothawk2c  cmp #hawktype2d 
+           lda #2
+           sta scoretype 
            bne nothawk2d 
            jmp killhawkright 
-nothawk2d           
+nothawk2d          
            cmp #hawktype3a 
            bne nothawk3a 
+           lda #3
+           sta scoretype
            jmp killhawkleft 
 nothawk3a  cmp #hawktype3b 
            bne nothawk3b
+           lda #3
+           sta scoretype
            jmp killhawkright
 nothawk3b  cmp #hawktype3c 
-           bne nothawk3c 
+           bne nothawk3c
+           lda #3
+           sta scoretype 
            jmp killhawkleft 
 nothawk3c  cmp #hawktype3d 
-           bne nothawk3d 
+           bne nothawk3d
+           lda #3
+           sta scoretype 
            jmp killhawkright 
 nothawk3d
            
@@ -622,9 +665,9 @@ selfmodi   ldy #$00
            bcc skipmod 
            inc screenhistore
 skipmod    dex 
-           bne bgcloop
+           bne bgcloop01
            rts
-           
+bgcloop01  jmp bgcloop           
            ;Kill Star Hawk from left 
 killhawkleft 
             lda #$20
@@ -641,7 +684,7 @@ killhawkleft
             sta (screenlostore),y
             lda #0
             sta objpos+2
-            rts 
+            jmp scorecheck
               
             ;Hill Star Hawk from right 
 killhawkright
@@ -659,7 +702,7 @@ killhawkright
             sta (screenlostore),y
             lda #0
             sta objpos+2
-            rts
+            jmp scorecheck
            
         
 ;----------------------------------------
@@ -813,6 +856,8 @@ testegg     rts
             
 ;----------------------------------------
 ;Test swooping hawks            
+;4 x jump subroutines for swoop test
+;Called via macro routines in macros.asm
 ;----------------------------------------
 
 testswoop 
@@ -822,52 +867,12 @@ testswoop
             jsr testswoop4
             rts
             
-;Macro code to make enemies fall
-
-!macro configfall yposition, xspeed {
-          
-          lda xspeed
-          beq .nofall
-          lda yposition
-          clc
-          adc #1
-          sta yposition
-.nofall          
-}
-  
+;Swoop test to check availability of enemy, by 
+;checking the x speed of the enemy. If enemy 
+;is outside the game screen with speed X = 0
+;then leave it, otherwise do the swooping X on 
+;screen            
             
-;Macro code to test enemy direction and speed 
-
-!macro confighawkswoop xdirection, positionx, speedx {
-          
-          
-           lda xdirection
-           cmp #1
-           beq .shifthawkright 
-           lda positionx
-           sec
-           sbc speedx
-           cmp #leftboundary 
-           bcs .leftok
-           lda #1
-           sta xdirection
-           lda #leftboundary
-.leftok    sta positionx
-           rts 
-
-.shifthawkright 
-          lda positionx 
-          clc
-          adc speedx
-          cmp #rightboundary 
-          bcc .rightok 
-          lda #0
-          sta xdirection
-          lda #rightboundary
-.rightok  sta positionx          
-          rts
-           
-}            
 testswoop1  +configfall objpos+5, enemy1xspeed
             +confighawkswoop enemy1dir, objpos+4, enemy1xspeed
 testswoop2  +configfall objpos+7, enemy2xspeed
@@ -952,37 +957,6 @@ playernothit  inx
               bne p2echeckloop
               rts
               
-;Enemy to bullet collision - Macro :)
-
-!macro enemy2bullet posx, posy, speedx {
-
-              lda posx      ;Zero position - prevent collision
-              beq .notshot
-              lda speedx    ;Zero x-speed - prevent collision
-              beq .notshot
-              lda posx
-              cmp collider+4
-              bcc .notshot
-              cmp collider+5
-              bcs .notshot
-              lda posy
-              cmp collider+6
-              bcc .notshot
-              cmp collider+7
-              bcs .notshot 
-             
-              ;Reposition enemy offset as well
-              ;as speed
-              
-              lda #0
-              sta speedx
-              sta posx 
-              sta posy
-             
-              
-.notshot      rts              
-}
-
 enemy2bullet1  +enemy2bullet objpos+4, objpos+5, enemy1xspeed
 enemy2bullet2  +enemy2bullet objpos+6, objpos+7, enemy2xspeed
 enemy2bullet3  +enemy2bullet objpos+8, objpos+9, enemy3xspeed
@@ -1026,6 +1000,8 @@ checklevloop   lda $0450,x
                inx
                cpx #200
                bne checklevloop
+               lda #1 ;Stop spawning new birds 
+               sta spawnstopenabled
                ldx #$00
 checkspeedloop lda enemy1xspeed,x
                bne .hawkexists
@@ -1040,207 +1016,274 @@ checkspeedloop lda enemy1xspeed,x
 ; Random launch of enemy bird sprites
 ;-------------------------------------
 
-randomselector  
 
-                jsr getrandom
-                sta objpos+$0e
-                jsr getrandom
-                sta objpos+$0f
-;                lda objpos+$0e ;X position of invisi sprite must be in range of the
-                               ;boundary in order to prevent incorrect spawn rates 
-                               
-               
-;                cmp #leftboundary
-;                bcs ok1
-;                rts
-;ok1                
-      
-;                cmp #rightboundary 
-;                bcc ok2
-;                rts               
-;ok2             lda objpos+$0f
-;                cmp #$42
-;                bcc ok3
-;                rts 
-;ok3             cmp #$80
-;                bcc ok4
-;                rts
-;ok4                
+randomselector  jsr cycleselection1
+                jsr cycleselection2
+                jsr cycleselection3
+                jsr cycleselection4
+                jsr cyclespriteposition
                 
-           lda objpos+$0f
-           sec
-           sbc #collisionheight
-           lsr
-           lsr
-           lsr
-           tay
-           lda screenlo,y 
-           sta screenlostore2
-           lda screenhi,y
-           sta screenhistore2 
-           
-           lda objpos+$0e
-           sec
-           sbc #collisionwidth
-           lsr
-           lsr
-           tay
-           
-           ldx #$03
-           sty selfmodi2+1
-bgcloop2   lda (screenlostore2),y 
-           cmp #hawktype1a
-           bne _nothawk1a 
-           jmp spawnhawk1left
-_nothawk1a  cmp #hawktype1b 
-           bne _nothawk1b 
-           jmp spawnhawk1right 
-_nothawk1b  cmp #hawktype1c 
-           bne _nothawk1c 
-           jmp spawnhawk1left 
-_nothawk1c  cmp #hawktype1d 
-           bne _nothawk1d
-           jmp spawnhawk1right
-           
-_nothawk1d  cmp #hawktype2a
-           bne _nothawk2a 
-           jmp spawnhawk2left 
-_nothawk2a  cmp #hawktype2b 
-           bne _nothawk2b 
-           jmp spawnhawk2right 
-_nothawk2b  cmp #hawktype2c 
-           bne _nothawk2c 
-           jmp spawnhawk2left 
-_nothawk2c  cmp #hawktype2d 
-           bne _nothawk2d 
-           jmp spawnhawk2right 
-_nothawk2d           
-           cmp #hawktype3a 
-           bne _nothawk3a 
-           jmp spawnhawk3left 
-_nothawk3a  cmp #hawktype3b 
-           bne _nothawk3b
-           jmp spawnhawk3right
-_nothawk3b  cmp #hawktype3c 
-           bne _nothawk3c 
-           jmp spawnhawk3left 
-_nothawk3c  cmp #hawktype3d 
-           bne _nothawk3d 
-           jmp spawnhawk3right 
-_nothawk3d
-           
-selfmodi2   ldy #$00
-           lda screenlostore2
-           clc
-           adc #40
-           sta screenlostore2
-           bcc skipmod2 
-           inc screenhistore2
-skipmod2    dex 
-           bne bgcloop2
-           rts
-  
-!macro spawnhawk xspeed, _animation_, animsm, posx, posy, process {
+                lda spawndelay
+                cmp #1
+                beq spawnnextifpossible
+                inc spawndelay
+                rts 
+spawnnextifpossible                
+                lda #0
+                sta spawndelay
+                jsr getrandom
+                and #$07
+                sta selectrandompointer
+                lda selectrandompointer
+                cmp #1
+                bne .notselectfleet1
+                jmp selectfleet1
+.notselectfleet1
+                cmp #2
+                bne .notselectfleet2
+                jmp selectfleet2 
+.notselectfleet2
+                cmp #3
+                bne .notselectfleet3 
+                jmp selectfleet3
+.notselectfleet3
+                cmp #4
+                bne .noselection 
+                jmp selectfleet4
+.noselection    rts
 
-            lda xspeed
-            beq .available
-            jmp .notavailable
-.available            
-            lda #<_animation_
-            sta animsm+1
-            lda #>_animation_
-            sta animsm+2
-           
-            lda objpos+$0e
-            sta posx
-            lda objpos+$0f
-            sta posy
-            lda #1
-            sta xspeed 
-            lda #0
-            sta objpos+$0e
-            sta objpos+$0f
-            jmp process
-.notavailable
-}
-  
+;A fleet row has been selected to check for the bird type ...
+
+selectfleet1    lda #1
+                sta $d020
+                lda #fleet1spriteypos
+                sta enemyposy 
+                lda fleet1store1lo 
+                sta fleetcharsm+1
+                lda fleet1store1hi
+                sta fleetcharsm+2
+                jmp spawnnewenemycheck
+                
+selectfleet2    lda #2
+                sta $d020 
+                lda #fleet2spriteypos
+                sta enemyposy
+                lda fleet2store1lo 
+                sta fleetcharsm+1
+                lda fleet2store1hi 
+                sta fleetcharsm+2
+                jmp spawnnewenemycheck
+            
+selectfleet3    lda #3
+                sta $d020 
+                lda #fleet3spriteypos
+                sta enemyposy
+                lda fleet3store1lo 
+                sta fleetcharsm+1
+                lda fleet3store1hi 
+                sta fleetcharsm+2 
+                jmp spawnnewenemycheck
+             
+selectfleet4    lda #4
+                sta $d020
+                lda #fleet4spriteypos
+                sta enemyposy
+                lda fleet4store1lo 
+                sta fleetcharsm+1
+                lda fleet4store1hi 
+                sta fleetcharsm+2
+                
+spawnnewenemycheck 
+                
+fleetcharsm     lda $cccc ;<- selfmod 
+                cmp #hawktype1a 
+                bne .nothawk01a
+                jmp dospawnhawk1forwards
+                
+.nothawk01a     cmp #hawktype1b
+                bne .nothawk01b
+                jmp dospawnhawk1backwards
+                
+.nothawk01b     cmp #hawktype1c
+                bne .nothawk01c 
+                jmp dospawnhawk1forwards 
+                
+.nothawk01c     cmp #hawktype1d 
+                bne .nothawk01d 
+                jmp dospawnhawk1backwards
+.nothawk01d                
+                cmp #hawktype2a 
+                bne .nothawk02a 
+                jmp dospawnhawk2forwards 
+                
+.nothawk02a     cmp #hawktype2b
+                bne .nothawk02b 
+                jmp dospawnhawk2backwards 
+                
+.nothawk02b     cmp #hawktype2c 
+                bne .nothawk02c 
+                jmp dospawnhawk2forwards 
+                
+.nothawk02c     cmp #hawktype2d 
+                bne .nothawk02d 
+                jmp dospawnhawk2backwards
+                
+.nothawk02d     cmp #hawktype3a 
+                bne .nothawk03a
+                jmp dospawnhawk3forwards 
+
+.nothawk03a     cmp #hawktype3b
+                bne .nothawk03b
+                jmp dospawnhawk3backwards
+         
+.nothawk03b     cmp #hawktype3c 
+                bne .nothawk03c 
+                jmp dospawnhawk3forwards 
+                
+.nothawk03c     cmp #hawktype3d 
+                bne .nothawk03d 
+                jmp dospawnhawk3backwards 
+                
+dospawnhawk1forwards
+                ;jsr deletefromleft
+                jmp spawnhawk1left
+.nothawk03d
+                rts               
+dospawnhawk1backwards 
+                ;jsr deletefromright
+                jmp spawnhawk1right
+                
+                
+dospawnhawk2forwards 
+                ;jsr deletefromleft 
+                jmp spawnhawk2left
+dospawnhawk2backwards 
+                ;jsr deletefromright 
+                jmp spawnhawk2right 
+
+dospawnhawk3forwards 
+                ;jsr deletefromleft 
+                jmp spawnhawk3left
+dospawnhawk3backwards 
+                ;jsr deletefromright
+                jmp spawnhawk3right
+                
+;Delete characters from top left 
+
+deletefromleft  lda fleetcharsm+1
+                sta delleftsm+1
+                lda fleetcharsm+2
+                sta delleftsm+2
+                
+                lda fleetcharsm+1
+                clc
+                adc #40
+                sta delleftsm2+1
+                lda fleetcharsm+2
+                clc
+                adc #$00
+                sta delleftsm2+2 
+                
+                ldx #$00
+leftrub         lda #$20                
+delleftsm       sta $c000,x
+delleftsm2      sta $c028,x              
+                inx 
+                cpx #2
+                bne leftrub
+               
+                rts
+
+deletefromright lda fleetcharsm+1
+               
+                sta delrightsm+1
+                lda fleetcharsm+2
+                sta delrightsm+1
+                lda fleetcharsm+1
+                clc
+                adc #40
+                sta delrightsm2+1 
+                lda fleetcharsm+1
+                clc 
+                adc #$00
+                sta delrightsm2+2
+                ldx #$01
+rightrub        lda #$20
+delrightsm     sta $c000,x 
+delrightsm2    sta $c028,x 
+                dex 
+                bpl rightrub
+                 
+                rts
+             
+;--------------------------------------------------                
+;Cycle subroutines of the lo and hi byte table for 
+;each of the enemy fleet objects
+;--------------------------------------------------
+cycleselection1 +selection selectpointer1, fleet1table1lo, fleet1store1lo, fleet1table1hi, fleet1store1hi
+cycleselection2 +selection selectpointer2, fleet2table1lo, fleet2store1lo, fleet2table1hi, fleet2store1hi 
+cycleselection3 +selection selectpointer3, fleet3table1lo, fleet3store1lo, fleet3table1hi, fleet3store1hi 
+cycleselection4 +selection selectpointer4, fleet4table1lo, fleet4store1lo, fleet4table1hi, fleet4store1hi                
+rts
+
+cyclespriteposition ldx selectorx
+                    lda spriteposxtable,x 
+                    sta enemyposx
+                    inx 
+                    cpx #40
+                    beq .resetspriteread
+                    inc selectorx
+                    rts
+.resetspriteread    ldx #0
+                    stx spriteposxtable
+                    rts
 ;Spawn any of the hawk sprites where 
 ;available.
 spawnhawk1left
             
-            +spawnhawk enemy1xspeed, hawktype1spr, hawk1sm, objpos+4, objpos+5, removefromleft
-            +spawnhawk enemy2xspeed, hawktype1spr, hawk2sm, objpos+6, objpos+7, removefromleft
-            +spawnhawk enemy3xspeed, hawktype1spr, hawk3sm, objpos+8, objpos+9, removefromleft
-            +spawnhawk enemy4xspeed, hawktype1spr, hawk4sm, objpos+10, objpos+11, removefromleft
+            +spawnhawk enemy1xspeed, hawktype1spr, hawk1sm, objpos+4, objpos+5, deletefromleft
+            +spawnhawk enemy2xspeed, hawktype1spr, hawk2sm, objpos+6, objpos+7, deletefromleft
+            +spawnhawk enemy3xspeed, hawktype1spr, hawk3sm, objpos+8, objpos+9, deletefromleft
+            +spawnhawk enemy4xspeed, hawktype1spr, hawk4sm, objpos+10, objpos+11, deletefromleft
             rts
-spawnhawk1right            
-            
-            +spawnhawk enemy1xspeed, hawktype1spr, hawk1sm, objpos+4, objpos+5, removefromright
-            +spawnhawk enemy2xspeed, hawktype1spr, hawk2sm, objpos+6, objpos+7, removefromright
-            +spawnhawk enemy3xspeed, hawktype1spr, hawk3sm, objpos+8, objpos+9, removefromright
-            +spawnhawk enemy4xspeed, hawktype1spr, hawk4sm, objpos+10, objpos+11, removefromright
-            rts
+spawnhawk1right
+
+            +spawnhawk enemy1xspeed, hawktype1spr, hawk1sm, objpos+4, objpos+5, deletefromright
+            +spawnhawk enemy2xspeed, hawktype1spr, hawk2sm, objpos+6, objpos+7, deletefromright
+            +spawnhawk enemy3xspeed, hawktype1spr, hawk3sm, objpos+8, objpos+9, deletefromright
+            +spawnhawk enemy4xspeed, hawktype1spr, hawk4sm, objpos+10, objpos+11, deletefromright
+            rts            
 spawnhawk2left
             
-            +spawnhawk enemy1xspeed, hawktype2spr, hawk1sm, objpos+4, objpos+5, removefromleft
-            +spawnhawk enemy2xspeed, hawktype2spr, hawk2sm, objpos+6, objpos+7, removefromleft
-            +spawnhawk enemy3xspeed, hawktype2spr, hawk3sm, objpos+8, objpos+9, removefromleft
-            +spawnhawk enemy4xspeed, hawktype2spr, hawk4sm, objpos+10, objpos+11, removefromleft
+            +spawnhawk enemy1xspeed, hawktype2spr, hawk1sm, objpos+4, objpos+5, deletefromleft
+            +spawnhawk enemy2xspeed, hawktype2spr, hawk2sm, objpos+6, objpos+7, deletefromleft
+            +spawnhawk enemy3xspeed, hawktype2spr, hawk3sm, objpos+8, objpos+9, deletefromleft
+            +spawnhawk enemy4xspeed, hawktype2spr, hawk4sm, objpos+10, objpos+11, deletefromleft
             rts
-spawnhawk2right 
-            
-            +spawnhawk enemy1xspeed, hawktype2spr, hawk1sm, objpos+4, objpos+5, removefromright
-            +spawnhawk enemy2xspeed, hawktype2spr, hawk2sm, objpos+6, objpos+7, removefromright
-            +spawnhawk enemy3xspeed, hawktype2spr, hawk3sm, objpos+8, objpos+9, removefromright
-            +spawnhawk enemy4xspeed, hawktype2spr, hawk4sm, objpos+10, objpos+11, removefromright
-            rts
+spawnhawk2right
+
+            +spawnhawk enemy1xspeed, hawktype2spr, hawk1sm, objpos+4, objpos+5, deletefromright
+            +spawnhawk enemy2xspeed, hawktype2spr, hawk2sm, objpos+6, objpos+7, deletefromright
+            +spawnhawk enemy3xspeed, hawktype2spr, hawk3sm, objpos+8, objpos+9, deletefromright
+            +spawnhawk enemy4xspeed, hawktype2spr, hawk4sm, objpos+10, objpos+11, deletefromright
             
 spawnhawk3left
             
-            +spawnhawk enemy1xspeed, hawktype3spr, hawk1sm, objpos+4, objpos+5, removefromleft
-            +spawnhawk enemy2xspeed, hawktype3spr, hawk2sm, objpos+6, objpos+7, removefromleft
-            +spawnhawk enemy3xspeed, hawktype3spr, hawk3sm, objpos+8, objpos+9, removefromleft
-            +spawnhawk enemy4xspeed, hawktype3spr, hawk4sm, objpos+10, objpos+11, removefromleft
+            +spawnhawk enemy1xspeed, hawktype3spr, hawk1sm, objpos+4, objpos+5, deletefromleft
+            +spawnhawk enemy2xspeed, hawktype3spr, hawk2sm, objpos+6, objpos+7, deletefromleft
+            +spawnhawk enemy3xspeed, hawktype3spr, hawk3sm, objpos+8, objpos+9, deletefromleft
+            +spawnhawk enemy4xspeed, hawktype3spr, hawk4sm, objpos+10, objpos+11, deletefromleft
+            
             rts
+            
 spawnhawk3right
             
-            +spawnhawk enemy1xspeed, hawktype3spr, hawk1sm, objpos+4, objpos+5, removefromright
-            +spawnhawk enemy2xspeed, hawktype3spr, hawk2sm, objpos+6, objpos+7, removefromright
-            +spawnhawk enemy3xspeed, hawktype3spr, hawk3sm, objpos+8, objpos+9, removefromright
-            +spawnhawk enemy4xspeed, hawktype3spr, hawk4sm, objpos+10, objpos+11, removefromright
+            +spawnhawk enemy1xspeed, hawktype3spr, hawk1sm, objpos+4, objpos+5, deletefromright
+            +spawnhawk enemy2xspeed, hawktype3spr, hawk2sm, objpos+6, objpos+7, deletefromright
+            +spawnhawk enemy3xspeed, hawktype3spr, hawk3sm, objpos+8, objpos+9, deletefromright
+            +spawnhawk enemy4xspeed, hawktype3spr, hawk4sm, objpos+10, objpos+11, deletefromright
+            
             rts
-            
-removefromleft
-            lda #$20
-            sta (screenlostore2),y 
-            iny
-            sta (screenlostore2),y
-            tya
-            clc
-            adc #40
-            tay
-            lda #$20
-            sta (screenlostore2),y
-            dey
-            sta (screenlostore2),y
-            rts 
-removefromright
-            lda #$20
-            sta (screenlostore2),y
-            dey
-            sta (screenlostore2),y 
-            tya
-            clc
-            adc #40
-            tay
-            lda #$20
-            sta (screenlostore2),y 
-            iny
-            sta (screenlostore2),y
-            rts
-            
-            
-
 ;General random routine                
              
 getrandom       lda random+1
@@ -1264,11 +1307,57 @@ getrandom       lda random+1
                 sta random+1
                 rts
                 
+;---------------------------------------------------------
+;Game scoring routines 
+;---------------------------------------------------------                
    
+scorecheck      
+                lda scoretype
+                cmp #1
+                beq _100points
+                cmp #2
+                beq _200points
+                cmp #3 
+                beq _300points 
+                cmp #4
+                beq _500points 
+                rts 
+_500points      jsr doscore
+                jsr doscore
+_300points      jsr doscore                 
+_200points      jsr doscore 
+_100points      jsr doscore 
+                rts 
+
+;Main score routine 
+
+doscore         inc score+3 
+                ldx #$03
+scoreloop       lda score,x
+                cmp #$3a
+                bne scoreok 
+                lda #$30
+                sta score,x
+                inc score-1,x 
+scoreok         dex 
+                bne scoreloop 
+                jmp updatepanel
+            
+;Update panel with score 
+                
+updatepanel     ldx #$00
+copyscore       lda score,x
+                sta scorepos,x
+                inx 
+                cpx #$06 
+                bne copyscore
+                rts
+               
+                
     ;-------------------------------------------------------------
               ;Import game pointers 
               
               !source "pointers.asm"
-;-------------------------------------------------------------
+    ;-------------------------------------------------------------
               
 

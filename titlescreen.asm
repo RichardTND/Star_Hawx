@@ -8,11 +8,13 @@
           ;interrupts 
           
           sei
-          ldx #$31
-          ldy #$ea
+          lda #$35
+          sta $01
+          ldx #$48
+          ldy #$ff
           lda #$81
-          stx $0314
-          sty $0315
+          stx $fffe
+          sty $ffff
           sta $dc0d
           sta $dd0d
           lda #$00 ;Switch screen off during drawing 
@@ -68,8 +70,12 @@
           ldx #<irq1
           ldy #>irq1
           lda #$7f
-          stx $0314
-          sty $0315
+          stx $fffe
+          sty $ffff
+          ldx #<nmi 
+          ldy #>nmi 
+          stx $fffe
+          sty $ffff
           sta $dc0d
           sta $dd0d
           lda #$32 ;Init top raster position
@@ -88,7 +94,12 @@
           ;Create double IRQ interrupt for scrolling message 
           ;and playing music
           
-irq1      inc $d019    
+irq1      pha
+          txa
+          pha
+          tya
+          pha
+          asl $d019    
           lda $dc0d
           sta $dd0d
           lda #$2e
@@ -97,11 +108,21 @@ irq1      inc $d019
           sta $d016 
           ldx #<irq2
           ldy #>irq2
-          stx $0314
-          sty $0315
-          jmp $ea7e
+          stx $fffe
+          sty $ffff
+          pla
+          tay
+          pla
+          tax
+          pla
+          rti
           
-irq2      inc $d019 
+irq2      pha
+          txa
+          pha
+          tya
+          pha
+          inc $d019 
           lda #$f0
           sta $d012
           lda #$18
@@ -111,9 +132,15 @@ irq2      inc $d019
           jsr musicplay
           ldx #<irq1
           ldy #>irq1
-          stx $0314
-          sty $0315
-          jmp $ea7e
+          stx $fffe
+          sty $ffff
+          pla 
+          tay
+          pla
+          tax
+          pla
+          rti
+          
           
           ;Body of title loop
 titleloop 
