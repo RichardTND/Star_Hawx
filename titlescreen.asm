@@ -1,15 +1,10 @@
-
-!ifdef justplaygame {          
-          ;Title screen code
-          jmp gamestart
-}
-          
+    
           ;Init necessary hardware. Disable 
           ;interrupts 
-          
-          sei
           lda #$35
           sta $01
+          
+          sei
           ldx #$48
           ldy #$ff
           lda #$81
@@ -74,8 +69,8 @@
           sty $ffff
           ldx #<nmi 
           ldy #>nmi 
-          stx $fffe
-          sty $ffff
+          stx $fffa
+          sty $fffb
           sta $dc0d
           sta $dd0d
           lda #$32 ;Init top raster position
@@ -166,7 +161,7 @@ titleloop
 scroller          
           lda xpos 
           sec 
-          sbc #2
+          sbc #1
           and #7
           sta xpos
           bcs exitscr
@@ -199,14 +194,10 @@ firebutton !byte 0
           
           !ct scr
 
-scrolltext !text " ... greetings arcade fans, welcome to *** s t a r  h a w x *** ...   a fun quick little arcade creation "
-           !text "...   programming, graphics, sound effects and music by richard bayliss (original music by roy fielding) ... (c) 2021 the new dimension "
-           !text "...   this is a fun galaxians style shoot 'em up ...    a fleet of evil space hawx have entered the "
-           !text "galaxy and has put all the neighbouring planets into turmoil ...   your mission is to move your ship at the "
-           !text "bottom of the screen and fire lasers into their butts ...   one hit and they are gone ...   watch out ...   at times "
-           !text "the space hawx will attempt to attack your ship ...   move it out the way if you can ...   once all of the space hawx "
-           !text "have gone, a new fleet of the same group will appear, but the game will get harder ...   "
-           !text "watch out for the green eggs ...   if you shoot those you will score a mystery bonus ...   "
-           !text "avoid collision with the space hawx, eggs or their bullets ...   controls: joystick in port 2 ...   left/right moves "
-           !text "ship, and fire button fires a laser bullet ...   press fire to play ...                                               "
+scrolltext !text "*** star hawx *** ...    code, graphics, sound effects and music by richard bayliss ...   (c)2021 the new dimension ... "
+           !text "plug a joystick into port 2 ...   move your ship left/right and blast all of those evil star hawx into oblivion with your "
+           !text "armed spaceship ...   scoring is based on the type of enemy you blast ...   if an enemy, their weapon or the bonus eggs collide into your ship, you will lose a life ...   you only have "
+           !text "3 lives at your disposal ...   keep on blasting those star hawx and score as many points as you possibly can ...   good luck ...    press fire to play ...          "
+           !byte 0
+          
            !byte 0

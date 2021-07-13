@@ -35,6 +35,8 @@
            bcs .leftok
            lda #1
            sta xdirection
+          ; lda #sfxenemydeath3
+          ; jsr sfxinit
            lda #leftboundary
 .leftok    sta positionx
            rts 
@@ -47,6 +49,8 @@
           bcc .rightok 
           lda #0
           sta xdirection
+         ; lda #sfxenemydeath3
+         ; jsr sfxinit
           lda #rightboundary
 .rightok  sta positionx          
           rts
@@ -81,8 +85,9 @@
               sta speedx
               sta posx 
               sta posy
-              
-          
+              sta objpos
+              sta spawndelay 
+              dec spawndelayspeed
 .notshot      rts              
 }
 ;---------------------------------------------------------------
@@ -134,7 +139,10 @@
             sta posy
             lda #1
             sta xspeed 
-            jmp removeprocess
+            jsr removeprocess
+            lda #sfxswoop
+            jsr sfxinit 
+            rts
 .notavailable
 }
   

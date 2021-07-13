@@ -17,9 +17,6 @@
 
           !to "starhawx.prg",cbm
           
-          ;Generate BASIC SYS address (2064, Front end) 
-          *=$0801
-          !basic (2064)
 ;=========================================
           *=$0810
           
@@ -83,3 +80,8 @@ backupchars
           ;Game code
           *=$4000
             !source "gamecode.asm"
+;=========================================
+          ;Sound effects 
+          *=$7000
+          !bin "bin\sfx.prg",,2
+;=========================================          

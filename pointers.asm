@@ -1,4 +1,4 @@
-
+waitdelay !byte 0
 animmode !byte 0
 
 fleetdir !byte 0 ;Set direction to move the birds accordingly 0 = left, 1 = right
@@ -16,7 +16,6 @@ fleet3store1hi !byte 0
 fleet4store1lo !byte 0
 fleet4store1hi !byte 0
 
-
 ;Fleet selector to launch birds
 
 selectorx !byte 0
@@ -24,7 +23,11 @@ selectory !byte 0
 spawnstopenabled !byte 0
 spawntime !byte 0
 spawndelay !byte 0
+spawndelayspeed !byte 0
+
 ;Randomizer 
+
+soundloopdelay !byte 0
 
 randtemp !byte $5a 
 random !byte %10011101,%01011011
@@ -77,39 +80,39 @@ enemyposy !byte 0
 ;Score sprites 
 points100 !byte $8f
 points200 !byte $90
-points300 !byte $a0
-points500 !byte $a1
+points300 !byte $91
+points500 !byte $92
 
 ;Get READY sprite everytime a new level 
 ;or game starts, or the player lose a
 ;life. (2 sprites)
-ready1 !byte $a2
-ready2 !byte $a3
+ready1 !byte $94
+ready2 !byte $95
 
 ;Game over (3 sprites)
-gameover1 !byte $a4
-gameover2 !byte $a5
-gameover3 !byte $a6
+gameover1 !byte $96
+gameover2 !byte $97
+gameover3 !byte $98
 
 ;Wave clear (4 sprites)
-waveclear1 !byte $a7
-waveclear2 !byte $a8
-waveclear3 !byte $a9
-waveclear4 !byte $aa
+waveclear1 !byte $99
+waveclear2 !byte $9a
+waveclear3 !byte $9b
+waveclear4 !byte $9c
 
 objpos !fill 16,0
-hawk1backup1 !fill 16,0
-hawk1backup2 !fill 16,0
-hawk1backup3 !fill 16,0
-hawk1backup4 !fill 16,0
-hawk2backup1 !fill 16,0
-hawk2backup2 !fill 16,0
-hawk2backup3 !fill 16,0
-hawk2backup4 !fill 16,0
-hawk3backup1 !fill 16,0
-hawk3backup2 !fill 16,0
-hawk3backup3 !fill 16,0
-hawk3backup4 !fill 16,0
+hawk1backup1 !fill 17,0
+hawk1backup2 !fill 17,0
+hawk1backup3 !fill 17,0
+hawk1backup4 !fill 17,0
+hawk2backup1 !fill 17,0
+hawk2backup2 !fill 17,0
+hawk2backup3 !fill 17,0
+hawk2backup4 !fill 17,0
+hawk3backup1 !fill 17,0
+hawk3backup2 !fill 17,0
+hawk3backup3 !fill 17,0
+hawk3backup4 !fill 17,0
 ;Forcefield colour store pointers
 
 colourpointer !byte 0
@@ -222,5 +225,5 @@ spriteposxtable
 score           !byte $30,$30,$30,$30,$30,$30 
 hiscore         !byte $30,$30,$30,$30,$30,$30
 lives           !byte $03 
-
+level           !byte $30,$31
  

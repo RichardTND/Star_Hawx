@@ -8,8 +8,8 @@ hiscorepos = $0422
 
 ;Zero page pointers
 
-screenlostore = $72
-screenhistore = $73
+screenlostore = $02
+screenhistore = $03
 
 ;Sprite/char collision size
 
@@ -66,6 +66,24 @@ gamecolourdata = $3be8
 ;Music pointers
 musicinit = $1000
 musicplay = $1003 
+ 
+;Sound type 
+
+mainsfx = 0
+sfxplayershoot = 1
+sfxswoop = 2
+sfxplayerdeath = 3
+sfxenemydeath1 = 4
+sfxenemydeath2 = 5 
+sfxenemydeath3 = 6
+sfxeggshot = 7
+sfxgetready = 8
+sfxgameover = 9
+sfxlevelcomplete = 10
+
+
+sfxinit = $7000
+sfxplay = $7003
 
 ;Screen memory for each row of spacehawx
 
