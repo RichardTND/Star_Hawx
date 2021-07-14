@@ -1,4 +1,5 @@
-    
+ rt = $0340
+ 
           ;Init necessary hardware. Disable 
           ;interrupts 
           lda #$35
@@ -89,11 +90,9 @@
           ;Create double IRQ interrupt for scrolling message 
           ;and playing music
           
-irq1      pha
-          txa
-          pha
-          tya
-          pha
+irq1      sta tstacka1+1
+          stx tstackx1+1
+          sty tstacky1+1
           asl $d019    
           lda $dc0d
           sta $dd0d
@@ -105,18 +104,14 @@ irq1      pha
           ldy #>irq2
           stx $fffe
           sty $ffff
-          pla
-          tay
-          pla
-          tax
-          pla
+tstacka1  lda #$00
+tstackx1  ldx #$00
+tstacky1  ldy #$00          
           rti
           
-irq2      pha
-          txa
-          pha
-          tya
-          pha
+irq2      sta tstacka2+1
+          stx tstackx2+1
+          sty tstacky2+1
           inc $d019 
           lda #$f0
           sta $d012
@@ -129,11 +124,9 @@ irq2      pha
           ldy #>irq1
           stx $fffe
           sty $ffff
-          pla 
-          tay
-          pla
-          tax
-          pla
+tstacka2  lda #$00
+tstackx2  ldx #$00
+tstacky2  ldy #$00          
           rti
           
           
@@ -188,7 +181,6 @@ exitscr   rts
 ;Pointers for the title code 
           
 xpos      !byte 0          ;Smoothness position for the scrolling message
-rt        !byte 0          ;Sync timer
 firebutton !byte 0          
 !align $ff,0
           

@@ -7,6 +7,8 @@ gamestart
           ;off all interrupts 
           lda #$35
           sta $01
+        
+          
           sei
           ldx #$48
           ldy #$ff
@@ -27,6 +29,7 @@ gamestart
           lda #0
           sta soundloopdelay
           sta waitdelay
+          sta firebutton
           
           lda #7
           sta $d022
@@ -47,8 +50,6 @@ clearsid  lda #$00
           
           ;cli
           ;Setup IRQ raster interrupts
-          ldx #$fb
-          txs
           ;sei
           ldx #<girq1
           ldy #>girq1
@@ -61,7 +62,7 @@ clearsid  lda #$00
           sty $fffb
           sta $dc0d
           sta $dd0d
-          lda #$36
+          lda #$2a
           sta $d012
           lda #$1b
           sta $d011
@@ -74,11 +75,9 @@ clearsid  lda #$00
           jmp gamerestart
           
           ;Main IRQ raster interrupt
-girq1     pha
-          txa
-          pha
-          tya
-          pha
+girq1     sta stacka+1
+          stx stackx+1
+          sty stacky+1
           asl $d019
           lda $dc0d
           sta $dd0d
@@ -87,11 +86,9 @@ girq1     pha
           lda #1
           sta rt
           jsr sfxplay
-          pla
-          tay
-          pla
-          tax
-          pla
+stacka    lda #$00
+stackx    ldx #$00
+stacky    ldy #$00          
 nmi       rti          
           
 gamerestart          
@@ -218,6 +215,7 @@ stopwait
           
           lda playership
           sta $07f9 
+         
           
           
           
@@ -231,14 +229,15 @@ gameloop  jsr synctimer
           jsr movehawx
            
           jsr playercontrol
-          jsr playerbulletcontrol
+         
           jsr testswoop
           jsr spritetosprite
           jsr randomselector
-          jsr eggcontrol
+        
           jmp gameloop
           
 synctimer
+          
           lda #$00
           sta rt
           cmp rt
@@ -540,6 +539,7 @@ switchcharanim2
 ;Player control 
 ;----------------------------------------
 playercontrol
+           jsr playerbulletcontrol
 
           ;Check joystick port 2, left 
 checkjoyleft          
@@ -587,7 +587,12 @@ checkjoyfire
           lsr
           lsr
           lsr
-          bcs nocontrol
+          bit firebutton
+          ror firebutton
+          bmi nocontrol
+          bvc nocontrol
+          lda #0
+          sta firebutton
           
           ;Check bullet position
           lda objpos
@@ -695,6 +700,7 @@ ishawk1left
             jsr killhawkleft
             lda #1
             sta scoretype
+            jsr scorecheck
             lda #sfxenemydeath1
             jsr sfxinit
             rts 
@@ -703,7 +709,7 @@ ishawk1right
             lda #1
             sta scoretype
             
-            jsr doscore
+            jsr scorecheck
             lda #sfxenemydeath1
             jsr sfxinit
             rts
@@ -724,7 +730,7 @@ ishawk2left
             lda #2
             sta scoretype
             
-            jsr doscore
+            jsr scorecheck
             lda #sfxenemydeath2
             jsr sfxinit
             
@@ -735,7 +741,7 @@ ishawk2right
             lda #2
             sta scoretype
             
-            jsr doscore
+            jsr scorecheck
             lda #sfxenemydeath2
             jsr sfxinit
             rts 
@@ -757,7 +763,7 @@ ishawk3left
             lda #3
             sta scoretype
             
-            jsr doscore
+            jsr scorecheck
             lda #sfxenemydeath3
             jsr sfxinit
             rts
@@ -765,7 +771,7 @@ ishawk3right
             jsr killhawkright
               lda #3
             sta scoretype
-            jsr doscore
+            jsr scorecheck
             lda #sfxenemydeath3
             jsr sfxinit
             lda #0
@@ -826,6 +832,7 @@ animator    jsr flashcolours
 animmain    lda #0
             sta animdelay
             jsr animforcefield ;Animate forcefield chars
+            jsr animstars      ;Animate blinking stars 
             ldx animpointer
             lda hawkanim1,x
             sta hawktype1spr
@@ -889,6 +896,26 @@ paintloop   lda colourstore1
             cpx #$28
             bne paintloop
             rts
+            
+;-----------------------------------------------------------------
+;On screen background animation (8 char frames) - link to 
+;scrolling charsets
+;-----------------------------------------------------------------               
+
+animstars     ldx #$00
+charanimloop1 lda $2c00,x
+              sta $2c38,x 
+              inx
+              cpx #8
+              bne charanimloop1
+              ldx #$00
+charanimloop2 lda $2c08,x 
+              sta $2c00,x 
+              inx
+              cpx #$38
+              bne charanimloop2
+              rts
+                             
 
 ;----------------------------------
 ;Self-modifying sprite pointers 
@@ -1026,9 +1053,7 @@ spritetosprite
               jsr enemy2bullet1
               jsr enemy2bullet2
               jsr enemy2bullet3
-              jsr enemy2bullet4
-             ; jsr egg2bullet
-              rts
+              jmp enemy2bullet4
               
               ;Player to enemy collision. This is 
               ;a very simple loop 
@@ -1089,12 +1114,12 @@ egg2bullet      lda objpos+14
 ;-------------------------------------
 
 
-randomselector  jsr cycleselection1
+randomselector   jsr cyclespriteposition
+                jsr cycleselection1
                 jsr cycleselection2
                 jsr cycleselection3
                 jsr cycleselection4
-                jsr cyclespriteposition
-                
+               
                 lda spawndelay
                 cmp spawndelayspeed
                 beq spawnnextifpossible
@@ -1304,7 +1329,7 @@ cycleselection1 +selection selectpointer1, fleet1table1lo, fleet1store1lo, fleet
 cycleselection2 +selection selectpointer2, fleet2table1lo, fleet2store1lo, fleet2table1hi, fleet2store1hi 
 cycleselection3 +selection selectpointer3, fleet3table1lo, fleet3store1lo, fleet3table1hi, fleet3store1hi 
 cycleselection4 +selection selectpointer4, fleet4table1lo, fleet4store1lo, fleet4table1hi, fleet4store1hi                
-rts
+
 
 cyclespriteposition ldx selectorx
                     lda spriteposxtable,x 
@@ -1346,7 +1371,7 @@ spawnhawk2right
             +spawnhawk enemy2xspeed, hawktype2spr, hawk2sm, objpos+6, objpos+7, deletefromright
             +spawnhawk enemy3xspeed, hawktype2spr, hawk3sm, objpos+8, objpos+9, deletefromright
             +spawnhawk enemy4xspeed, hawktype2spr, hawk4sm, objpos+10, objpos+11, deletefromright
-            
+            rts
 spawnhawk3left
             
             +spawnhawk enemy1xspeed, hawktype3spr, hawk1sm, objpos+4, objpos+5, deletefromleft
@@ -1483,9 +1508,13 @@ checkhawk3exists
                beq .hawk3exists 
                cmp #75 
                beq .hawk3exists 
-               jmp .finishcheckloop1
+               inx 
+               cpx #200
+               bne checklevloop
+               jmp checksegment2
 .hawk3exists   rts 
-
+checksegment2
+               ldx #$00
 .finishcheckloop1               
                lda $0450+200,x
                cmp #64
@@ -1528,10 +1557,9 @@ checkhawk3exists2
 nohawkchars               
                inx
                cpx #200
-               beq .checkhawksprites
-               jmp checklevloop
+               bne .finishcheckloop1
 
-.checkhawksprites               
+;Check that there are no hawk sprites alive        
                
                lda #1 ;Stop spawning new birds 
                sta spawnstopenabled
@@ -1546,6 +1574,10 @@ checkspeedloop lda enemy1xspeed,x
                jmp showlevelcomplete
 .hawkexists    rts               
                
+;---------------------------------------------
+;Level complete sequence
+;---------------------------------------------
+
                ;Remove all of the sprites 
 showlevelcomplete               
                ldx #$00
@@ -1599,16 +1631,14 @@ startnextlevel
                lda #$30
                sta level+1
                inc level
-levelok        lda spawndelayspeed
-               sec
-               sbc #4
+levelok        lda #30
                sta spawndelayspeed
                lda #0
                sta spawndelay
                jsr updatepanel
                jmp gamerestart
                rts               
-                          
+                        
     ;-------------------------------------------------------------
               ;Import game pointers 
               

@@ -84,4 +84,5 @@ backupchars
           ;Sound effects 
           *=$7000
           !bin "bin\sfx.prg",,2
+          
 ;=========================================          

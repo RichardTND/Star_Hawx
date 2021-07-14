@@ -8,8 +8,8 @@ hiscorepos = $0422
 
 ;Zero page pointers
 
-screenlostore = $02
-screenhistore = $03
+screenlostore = $80
+screenhistore = $81
 
 ;Sprite/char collision size
 
