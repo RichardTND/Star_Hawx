@@ -65,7 +65,7 @@ gamecolourdata = $3be8
 
 ;Music pointers
 musicinit = $1000
-musicplay = $1003 
+musicplay = $1006 
  
 ;Sound type 
 
@@ -96,12 +96,10 @@ fleet3row2 = $0540+40
 fleet4row1 = $05b8
 fleet4row2 = $05b8+40
 
-fleet1spriteypos = $42
-fleet2spriteypos = $5a-2
-fleet3spriteypos = $72-2 
-fleet4spriteypos = $8a-2
-
-
+fleet1spriteypos = $40
+fleet2spriteypos = $5a
+fleet3spriteypos = $70
+fleet4spriteypos = $8a
 
 ;Sprite X position boundary for both player 
 ;eggs, and swooping birds 

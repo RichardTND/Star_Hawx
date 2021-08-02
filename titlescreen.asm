@@ -154,7 +154,7 @@ titleloop
 scroller          
           lda xpos 
           sec 
-          sbc #1
+          sbc #2
           and #7
           sta xpos
           bcs exitscr
@@ -186,10 +186,13 @@ firebutton !byte 0
           
           !ct scr
 
-scrolltext !text "*** star hawx *** ...    code, graphics, sound effects and music by richard bayliss ...   (c)2021 the new dimension ... "
-           !text "plug a joystick into port 2 ...   move your ship left/right and blast all of those evil star hawx into oblivion with your "
-           !text "armed spaceship ...   scoring is based on the type of enemy you blast ...   if an enemy, their weapon or the bonus eggs collide into your ship, you will lose a life ...   you only have "
-           !text "3 lives at your disposal ...   keep on blasting those star hawx and score as many points as you possibly can ...   good luck ...    press fire to play ...          "
+scrolltext !text "   ... zzap 64 proudly presents *** s t a r   h a w x *** ...   "
+           !text "yet another fun early 1980's style arcade shooter ...   brought to you "
+           !text "by the new dimension ...   programming, graphics, sound effects and music "
+           !text "were all done by richard bayliss ...   additional graphics were drawn by hugues "
+           !text "poisseroux ...   (c) 2021 the new dimension ...   plug a joystick into port 2 "
+           !text "and prepare to do battle against the evil star hawx ...   pure arcade fun in front "
+           !text "of your computer guaranteed ...   press fire to start ...                        "
            !byte 0
           
            !byte 0

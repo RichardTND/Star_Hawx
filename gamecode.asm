@@ -23,7 +23,7 @@ gamestart
           sta $d019
           sta $d021
           sta $d020
-          lda #30
+          lda #32
           sta spawndelayspeed
          
           lda #0
@@ -269,7 +269,7 @@ eloop     lda objpos+1,x
 ;--------------------------------------------
 movehawx  ;jsr testswoopers
           lda fleetdelay
-          cmp #1
+          cmp #2
           beq fleetdelayok
           inc fleetdelay
           rts
@@ -930,7 +930,7 @@ spritemode
             jsr testhawk4
             jsr testbull
             jsr testegg
-            jsr checklevelcomplete
+            
             rts
             
 testhawk1
@@ -1119,7 +1119,7 @@ randomselector   jsr cyclespriteposition
                 jsr cycleselection2
                 jsr cycleselection3
                 jsr cycleselection4
-               
+                
                 lda spawndelay
                 cmp spawndelayspeed
                 beq spawnnextifpossible
@@ -1278,16 +1278,13 @@ deletefromleft  lda fleetcharsm+1
                 sta delleftsm+1
                 lda fleetcharsm+2
                 sta delleftsm+2
-                
-                lda fleetcharsm+1
+                lda delleftsm+1
                 clc
-                adc #40
+                adc #40 
                 sta delleftsm2+1
-                lda fleetcharsm+2
-                clc
-                adc #$00
-                sta delleftsm2+2 
-                
+                lda delleftsm+2
+                adc #0
+                sta delleftsm2+2
                 ldx #$00
 leftrub         lda #$20                
 delleftsm       sta $c000,x
@@ -1298,26 +1295,28 @@ delleftsm2      sta $c028,x
                
                 rts
 
-deletefromright lda fleetcharsm+1
-               
-                sta delrightsm+1
-                lda fleetcharsm+2
-                sta delrightsm+1
+deletefromright  
                 lda fleetcharsm+1
+                sec 
+                sbc #1
+                sta delrightsm+1
+                lda fleetcharsm+2 
+                sta delrightsm+2
+                lda delrightsm+1
                 clc
                 adc #40
-                sta delrightsm2+1 
-                lda fleetcharsm+1
-                clc 
-                adc #$00
-               
+                sta delrightsm2+1
+                lda delrightsm+2
+                adc #0
                 sta delrightsm2+2
-                ldx #$01
+                
+                ldx #$00
 rightrub        lda #$20
 delrightsm     sta $c000,x 
 delrightsm2    sta $c028,x 
-                dex 
-                bpl rightrub
+                inx
+                cpx #$02
+                bne rightrub
                  
                 rts
              
@@ -1340,7 +1339,7 @@ cyclespriteposition ldx selectorx
                     inc selectorx
                     rts
 .resetspriteread    ldx #0
-                    stx spriteposxtable
+                    stx selectorx
                     rts
 ;Spawn any of the hawk sprites where 
 ;available.
@@ -1446,7 +1445,9 @@ scoreloop       lda score,x
                 inc score-1,x 
 scoreok         dex 
                 bne scoreloop 
-                jmp updatepanel
+                
+                jsr updatepanel
+                jsr checklevelcomplete
             
 ;Update panel with score 
                 
@@ -1631,10 +1632,23 @@ startnextlevel
                lda #$30
                sta level+1
                inc level
-levelok        lda #30
+levelok        lda spawndelayspeed
+               sec
+               sbc #4
                sta spawndelayspeed
+               lda spawndelayspeed 
+               cmp #4
+               
+               bne stordelay
+               lda #32
+               sta spawndelayspeed
+               
+stordelay               
+               
+               
                lda #0
                sta spawndelay
+               sta selectorx
                jsr updatepanel
                jmp gamerestart
                rts               
