@@ -138,6 +138,9 @@ titleloop
           cmp rt
           beq *-3
           jsr scroller
+           jsr washroutine
+          jsr animator
+         
           lda $dc00 
           lsr
           lsr
@@ -178,21 +181,45 @@ storechr  sta $07e7
           inc messread+2
 exitscr   rts 
           
+washroutine
+          jsr swapcolours
+          lda cwdelay 
+          cmp #3
+          beq washnow
+          inc cwdelay 
+          rts 
+washnow   lda #0
+          sta cwdelay
+          
+          ldx cwpointer
+          lda colourtable,x
+          sta $dbe7 
+          inx
+          cpx #colourtableend-colourtable 
+          beq resetflash
+          inc cwpointer 
+          rts
+resetflash 
+          ldx #0
+          stx cwpointer
+          rts
+          
+swapcolours 
+          ldx #0
+swaploop  lda $dbc1,x
+          sta $dbc0,x
+          inx
+          cpx #$27
+          bne swaploop
+          rts
+          
+          
 ;Pointers for the title code 
           
 xpos      !byte 0          ;Smoothness position for the scrolling message
 firebutton !byte 0          
-!align $ff,0
-          
-          !ct scr
+cwdelay !byte 0
+cwpointer !byte 0
 
-scrolltext !text "   ... zzap 64 proudly presents *** s t a r   h a w x *** ...   "
-           !text "yet another fun early 1980's style arcade shooter ...   brought to you "
-           !text "by the new dimension ...   programming, graphics, sound effects and music "
-           !text "were all done by richard bayliss ...   additional graphics were drawn by hugues "
-           !text "poisseroux ...   (c) 2021 the new dimension ...   plug a joystick into port 2 "
-           !text "and prepare to do battle against the evil star hawx ...   pure arcade fun in front "
-           !text "of your computer guaranteed ...   press fire to start ...                        "
-           !byte 0
-          
-           !byte 0
+colourtable !byte $06,$04,$03,$01,$03,$04
+colourtableend !byte 0

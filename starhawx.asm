@@ -86,3 +86,6 @@ backupchars
           !bin "bin\sfx.prg",,2
           
 ;=========================================          
+          ;Scroll text 
+          *=$9000
+          !source "scrolltext.asm"

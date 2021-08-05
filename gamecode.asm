@@ -23,14 +23,14 @@ gamestart
           sta $d019
           sta $d021
           sta $d020
-          lda #32
+          lda #16
           sta spawndelayspeed
          
           lda #0
           sta soundloopdelay
           sta waitdelay
           sta firebutton
-          
+          sta hawktoshoot
           lda #7
           sta $d022
           lda #6
@@ -112,6 +112,7 @@ drawgame  lda gamescreendata,x
           sta $dae8,x
           inx
           bne drawgame
+          
           jsr updatepanel
           lda #$1b
           sta $d011
@@ -164,6 +165,7 @@ yelblured lda #$02
           sta enemy4xspeed
           sta spawnstopenabled
           sta spawntime
+          sta playerbulletdead
           lda #0 
           sta waitdelay
           lda #sfxgetready
@@ -200,6 +202,8 @@ stopwait
           
           lda #0
           sta objpos
+          sta hawktoshootdelay
+          sta hawktoshoot
           
           ;Setup player starting position 
           
@@ -233,7 +237,7 @@ gameloop  jsr synctimer
           jsr testswoop
           jsr spritetosprite
           jsr randomselector
-        
+          jsr selecthawkshoot
           jmp gameloop
           
 synctimer
@@ -495,11 +499,6 @@ switchcharanim1
             sta animmode
             rts
             
-checkchartype            
-                        
-            rts
-            
-
 switchfleetanim2
             ldx #$00
 switchcharanim2
@@ -615,7 +614,13 @@ nocontrol
 ;----------------------------------------
 
 playerbulletcontrol
-
+          lda playerbulletdead 
+          beq playerbulletactive
+          jsr bulldeadanim
+          rts
+playerbulletactive  
+          lda #$81
+          sta $07f8
           lda objpos
           beq nocontrol
           lda objpos+1
@@ -629,6 +634,28 @@ storebullpos
           sta objpos+1
           rts
           
+          ;Short delay to show splat exploder before 
+          ;removing the bullet and making it active again
+          
+bulldeadanim          
+splatsm
+          lda #$90
+          sta $07f8
+          lda splatdelay
+          cmp #$08
+          beq restorebull
+          inc splatdelay
+          rts
+restorebull
+          lda #0
+          sta objpos
+          sta objpos+1
+          lda #0
+          sta playerbulletdead
+          rts
+          
+
+          
 
 ;-----------------------------------------
 ;Collision detection - Player bullet to 
@@ -636,9 +663,13 @@ storebullpos
 ;-----------------------------------------
 
            jsr spritetosprite 
-zp=$70         
 
 bullettohawkchars
+           lda playerbulletdead
+           cmp #1
+           bne _readcollider
+           rts
+_readcollider
            lda objpos
            bne checkcharz
            rts
@@ -703,6 +734,8 @@ ishawk1left
             jsr scorecheck
             lda #sfxenemydeath1
             jsr sfxinit
+            lda #$90
+            sta splatsm+1
             rts 
 ishawk1right
             jsr killhawkright
@@ -712,6 +745,8 @@ ishawk1right
             jsr scorecheck
             lda #sfxenemydeath1
             jsr sfxinit
+            lda #$90
+            sta splatsm+1
             rts
             
 checkifcharishawk2 
@@ -733,6 +768,8 @@ ishawk2left
             jsr scorecheck
             lda #sfxenemydeath2
             jsr sfxinit
+            lda #$91
+            sta splatsm+1
             
             rts 
 ishawk2right
@@ -744,6 +781,8 @@ ishawk2right
             jsr scorecheck
             lda #sfxenemydeath2
             jsr sfxinit
+            lda #$91
+            sta splatsm+1
             rts 
             
 checkifcharishawk3 
@@ -766,6 +805,8 @@ ishawk3left
             jsr scorecheck
             lda #sfxenemydeath3
             jsr sfxinit
+            lda #$92
+            sta splatsm+1
             rts
 ishawk3right
             jsr killhawkright
@@ -776,7 +817,9 @@ ishawk3right
             jsr sfxinit
             lda #0
             sta spawndelay
-            dec spawndelayspeed
+            ;dec spawndelayspeed
+            lda #$92
+            sta splatsm+1
             rts
             
               
@@ -795,9 +838,8 @@ killhawkleft
             sta (zp+1),y 
             dey 
             sta (zp+1),y
-            lda #0
-            sta objpos
-            rts
+            jmp dokillbullet
+            ;rts
             ;Hill Star Hawk from right 
 killhawkright
             lda #$20 
@@ -812,10 +854,19 @@ killhawkright
             sta (zp+1),y 
             iny
             sta (zp+1),y
-            lda #0
-            sta objpos
+           
             sta spawndelay
             dec spawndelayspeed
+            jmp dokillbullet
+            rts
+            
+;Do kill bullet 
+              
+dokillbullet  
+            lda #0
+            sta splatdelay
+            lda #1
+            sta playerbulletdead
             rts
            
 ;----------------------------------------
@@ -1082,10 +1133,10 @@ playernothit  inx
               bne p2echeckloop
               rts
               
-enemy2bullet1  +enemy2bullet objpos+4, objpos+5, enemy1xspeed
-enemy2bullet2  +enemy2bullet objpos+6, objpos+7, enemy2xspeed
-enemy2bullet3  +enemy2bullet objpos+8, objpos+9, enemy3xspeed
-enemy2bullet4  +enemy2bullet objpos+10, objpos+11, enemy4xspeed
+enemy2bullet1  +enemy2bullet objpos+4, objpos+5, enemy1xspeed, $07fa
+enemy2bullet2  +enemy2bullet objpos+6, objpos+7, enemy2xspeed, $07fb
+enemy2bullet3  +enemy2bullet objpos+8, objpos+9, enemy3xspeed, $07fc
+enemy2bullet4  +enemy2bullet objpos+10, objpos+11, enemy4xspeed, $07fd
 
 ;Special routine for egg 2 bullet since egg only 
 ;falls and uses no X-movement. 
@@ -1121,7 +1172,7 @@ randomselector   jsr cyclespriteposition
                 jsr cycleselection4
                 
                 lda spawndelay
-                cmp spawndelayspeed
+                cmp #4
                 beq spawnnextifpossible
                 inc spawndelay
                 rts 
@@ -1634,10 +1685,10 @@ startnextlevel
                inc level
 levelok        lda spawndelayspeed
                sec
-               sbc #4
+               sbc #1
                sta spawndelayspeed
                lda spawndelayspeed 
-               cmp #4
+               cmp #1
                
                bne stordelay
                lda #32
@@ -1651,9 +1702,73 @@ stordelay
                sta selectorx
                jsr updatepanel
                jmp gamerestart
-               rts               
-                        
-    ;-------------------------------------------------------------
+               rts           
+           
+;------------------------------------------------
+;Star Hawx shooting. Constantly increment the 
+;hawk select pointer until it reaches >4 then 
+;once the bullet is offset, check the hawk 
+;boundary and then force it to fire bullet
+;------------------------------------------------               
+selecthawkshoot
+               
+               jsr bulletdrop
+               lda hawktoshootdelay
+               cmp #$20
+               bne _noselect
+               lda #0
+               sta hawktoshootdelay
+               jsr selecthawktoshoot
+_noselect      
+               inc hawktoshootdelay
+               rts
+selecthawktoshoot
+               inc hawktoshoot
+               lda hawktoshoot
+               cmp #1
+               beq checkhawk1fire
+               cmp #2
+               beq checkhawk2fire 
+               cmp #3
+               beq checkhawk3fire
+               cmp #4
+               beq checkhawk4fire
+               lda #0
+               sta hawktoshoot
+               rts 
+
+;Check hawks that should shoot during play 
+
+checkhawk1fire jmp checkhawktoshoot1
+checkhawk2fire jmp checkhawktoshoot2
+checkhawk3fire jmp checkhawktoshoot3
+checkhawk4fire jmp checkhawktoshoot4 
+
+checkhawktoshoot1 +select_hawk_shoot objpos+4, objpos+5 
+checkhawktoshoot2 +select_hawk_shoot objpos+6, objpos+7 
+checkhawktoshoot3 +select_hawk_shoot objpos+8, objpos+9       
+checkhawktoshoot4 +select_hawk_shoot objpos+10, objpos+11      
+
+;-------------------------------------------------------------
+;Bullet drop routine - this makes the bullet fall routine
+;(No thrills here ;))
+;--------------------------------------------------------------
+bulletdrop    lda #$8f
+              sta $07ff
+              lda objpos+15
+              clc
+              adc #6
+              cmp #$f0 
+              bcc notoffsetbull
+              lda #0
+              sta objpos+14
+notoffsetbull 
+              sta objpos+15
+              rts
+              
+              
+              
+
               ;Import game pointers 
               
               !source "pointers.asm"

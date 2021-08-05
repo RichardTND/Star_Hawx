@@ -25,6 +25,13 @@ spawntime !byte 0
 spawndelay !byte 0
 spawndelayspeed !byte 0
 
+hawktoshoot !byte 0
+hawktoshootdelay !byte 0
+
+playerbulletdead !byte 0
+splatdelay !byte 0
+
+
 ;Randomizer 
 
 soundloopdelay !byte 0

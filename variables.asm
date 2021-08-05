@@ -53,6 +53,7 @@ bulletcollisionright = $0c
 bulletcollisionup = $0c 
 bulletcollisiondown = $18
 
+zp=$70   
 
 ;Title and game screen data
 
@@ -65,7 +66,7 @@ gamecolourdata = $3be8
 
 ;Music pointers
 musicinit = $1000
-musicplay = $1006 
+musicplay = $1003 
  
 ;Sound type 
 

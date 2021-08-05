@@ -60,9 +60,14 @@
 ;Enemy to bullet collision - Macro :)
 ;--------------------------------------------
 
-!macro enemy2bullet posx, posy, speedx {
+!macro enemy2bullet posx, posy, speedx, hwspriteframe {
 
-  
+              lda playerbulletdead
+              cmp #1
+              bne .processcollider
+.notshot              
+              rts
+.processcollider              
               lda posx      ;Zero position - prevent collision
               beq .notshot
               lda speedx    ;Zero x-speed - prevent collision
@@ -78,17 +83,69 @@
               cmp collider+7
               bcs .notshot 
              
+              ;The enemy is shot. We now need to check that 
+              ;the enemy shot is a hawk  
+              
+              lda hwspriteframe
+              cmp #$89 
+              beq .score100
+              cmp #$8a
+              beq .score100
+              cmp #$8b
+              beq .score200
+              cmp #$8c
+              beq .score200 
+              cmp #$8d 
+              beq .score300
+              cmp #$8e 
+              beq .score300
+              rts
+              
+.score100     lda #1
+              sta scoretype 
+              lda #$90
+              sta splatsm+1
+              lda #sfxenemydeath1
+              jsr sfxinit
+              jmp .dorest
+              
+.score200     lda #2
+              sta scoretype 
+              lda #$91
+              sta splatsm+1
+              lda #sfxenemydeath2
+              jsr sfxinit
+              jmp .dorest 
+.score300
+              lda #3
+              sta scoretype
+              lda #$92
+              sta splatsm+1
+              lda #sfxenemydeath3
+              jsr sfxinit
+              
+              
               ;Reposition enemy offset as well
               ;as speed
-              
+.dorest       
               lda #0
+              sta splatdelay
               sta speedx
               sta posx 
               sta posy
-              sta objpos
+             
               sta spawndelay 
               dec spawndelayspeed
-.notshot      rts              
+              lda #0
+              sta splatdelay
+              lda #1
+              sta playerbulletdead
+             
+              jsr scorecheck
+              
+              rts              
+
+              
 }
 ;---------------------------------------------------------------
 ;Constant looping of the enemy char position select counter 
@@ -145,5 +202,26 @@
             rts
 .notavailable
 }
-  
 
+;-------------------------------------------------------
+;Macro code for testing which hawk can fire or not. Also 
+;check whether the hawk has reached $a0 or lower before
+;it can attack and fire laser.
+;-------------------------------------------------------
+
+!macro select_hawk_shoot posx, posy {
+               lda posy 
+               cmp #$42
+               bcc .hawkbullnotshoot 
+               lda objpos+14
+               beq .activate
+.hawkbullnotshoot
+               rts
+.activate      lda posx 
+               sta objpos+14
+               lda posy 
+               sta objpos+15
+               lda #sfxplayershoot
+               jsr sfxinit
+               rts
+}               
