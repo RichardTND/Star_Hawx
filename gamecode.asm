@@ -31,6 +31,12 @@ gamestart
           sta waitdelay
           sta firebutton
           sta hawktoshoot
+          sta eggtimer
+          sta eggdir 
+          sta eggdelay
+          lda #3
+          sta lives
+          
           lda #7
           sta $d022
           lda #6
@@ -40,6 +46,7 @@ gamestart
           lda #$1a
           sta $d018
           
+          ;Init SID
           ldx #$00
 clearsid  lda #$00
           sta $d3ff,x
@@ -47,6 +54,14 @@ clearsid  lda #$00
           cpx #$1a
           bne clearsid
           sta firebutton
+          
+          ;Init score
+          ldx #$00
+scorezero lda #$30
+          sta score,x
+          inx
+          cpx #6
+          bne scorezero
           
           ;cli
           ;Setup IRQ raster interrupts
@@ -116,7 +131,7 @@ drawgame  lda gamescreendata,x
           jsr updatepanel
           lda #$1b
           sta $d011
-          
+lifelostloop          
           ;Zero position all of the game sprites
           
           ldx #$00
@@ -228,16 +243,32 @@ stopwait
 ;-------------------------------------------          
 gameloop  jsr synctimer
           
+          ;Collision detection
           jsr bullettohawkchars
           jsr spritemode
+          
+          ;Shift hawk fleet
           jsr movehawx
-           
+          
+          ;Player properties 
           jsr playercontrol
-         
+          
+          ;Spawn test (if enemy kills player, zero Y position
+          ;enemy that hit player)
           jsr testswoop
+          
+          ;Collision detection sprite/sprite
           jsr spritetosprite
+          
+          ;Randomiser
           jsr randomselector
+          
+          ;Hawk shooting properties
           jsr selecthawkshoot
+          
+          ;Bonus egg properties
+          jsr eggproperties
+          
           jmp gameloop
           
 synctimer
@@ -980,8 +1011,7 @@ spritemode
             jsr testhawk3
             jsr testhawk4
             jsr testbull
-            jsr testegg
-            
+           
             rts
             
 testhawk1
@@ -1009,26 +1039,11 @@ testbull
             cmp #$fa
             bcc notoffset
             lda #0
-            sta objpos+$0d
-notoffset            
             sta objpos+$0c
+notoffset            
+            sta objpos+$0d
             
             rts
-            
-testegg     rts       
-            lda bonusegg
-            sta $07ff
-
-           ; lda objpos+$0f 
-          ;  clc
-         ;   adc #4
-           ; sta objpos+$0f 
-            lda #$60
-            sta objpos+$0e
-            lda #$05
-            sta $d02e
-            rts
-            
 ;----------------------------------------
 ;Test swooping hawks            
 ;4 x jump subroutines for swoop test
@@ -1118,13 +1133,16 @@ p2echeckloop
               cmp collider+1
               bcs playernothit
               lda objpos+5,x
-              cmp collider
+              cmp collider+2
               bcc playernothit
-              cmp collider+1
+              cmp collider+3
               bcs playernothit
-              
-              ;Player is hit
-              
+              lda #0
+              sta objpos+5,x 
+              ;Player is hit so move to another syncroutine to destroy the player.
+              lda #sfxplayerdeath
+              jsr sfxinit
+              jmp destroyplayer
               
               rts
 playernothit  inx
@@ -1137,28 +1155,6 @@ enemy2bullet1  +enemy2bullet objpos+4, objpos+5, enemy1xspeed, $07fa
 enemy2bullet2  +enemy2bullet objpos+6, objpos+7, enemy2xspeed, $07fb
 enemy2bullet3  +enemy2bullet objpos+8, objpos+9, enemy3xspeed, $07fc
 enemy2bullet4  +enemy2bullet objpos+10, objpos+11, enemy4xspeed, $07fd
-
-;Special routine for egg 2 bullet since egg only 
-;falls and uses no X-movement. 
-
-egg2bullet      lda objpos+14
-                beq .noeggshot
-                lda objpos+14
-                cmp collider+4
-                bcc .noeggshot
-                cmp collider+5
-                bcs .noeggshot
-                lda objpos+15
-                cmp collider+6
-                bcc .noeggshot
-                cmp collider+7
-                bcs .noeggshot
-                lda #0
-                sta objpos+14
-                sta objpos+15
-.noeggshot                
-                rts
-                
 
 ;-------------------------------------
 ; Random launch of enemy bird sprites
@@ -1505,6 +1501,8 @@ scoreok         dex
 updatepanel     ldx #$00
 copyscore       lda score,x
                 sta scorepos,x
+                lda hiscore,x 
+                sta hiscorepos,x
                 inx 
                 cpx #$06 
                 bne copyscore
@@ -1512,7 +1510,39 @@ copyscore       lda score,x
                 sta levelpos+1
                 lda level
                 sta levelpos
+                lda lives 
+                beq nillives
+                cmp #1
+                beq onelife
+                cmp #2
+                beq twolives
+                cmp #3
+                beq threelives
+                rts
+threelives      lda #28 
+                sta livespos
+                sta livespos+1
+                sta livespos+2
+                rts
                 
+twolives        lda #$20                
+                sta livespos 
+                lda #28
+                sta livespos+1
+                sta livespos+2
+                rts
+                
+onelife         lda #$20
+                sta livespos 
+                sta livespos+1
+                lda #28
+                sta livespos+2
+                rts
+                
+nillives        lda #$20
+                sta livespos
+                sta livespos+1
+                sta livespos+2
                 rts
                
 playdeathsfx1   lda #sfxenemydeath1
@@ -1754,19 +1784,326 @@ checkhawktoshoot4 +select_hawk_shoot objpos+10, objpos+11
 ;(No thrills here ;))
 ;--------------------------------------------------------------
 bulletdrop    lda #$8f
-              sta $07ff
-              lda objpos+15
-              clc
-              adc #6
-              cmp #$f0 
-              bcc notoffsetbull
-              lda #0
-              sta objpos+14
-notoffsetbull 
-              sta objpos+15
+              sta $07fe
+            
               rts
               
               
+;--------------------------------------------------------------
+;Bonus egg properties - This controls the egg's behviour.
+;When the egg is offset, the routine is timed for a short 
+;period. Behind the scene, the egg will move left/right. As
+;soon as timer expires, the egg will fall. The player will have
+;to shoot the egg in order to get a bonus between 100 and 500
+;points (The scoring option will operate in collision test mode)
+;-------------------------------------------------------------- 
+
+eggproperties 
+              lda eggreleased
+              cmp #1
+              bne eggnotreleasedyet
+              jmp dropegg
+eggnotreleasedyet
+              lda eggdelay 
+              cmp #7
+              beq eggdelayok
+              inc eggdelay
+              rts
+eggdelayok    lda #0
+              sta eggdelay
+              lda eggtimer 
+              cmp eggtimerexpiry
+              beq releasetheegg
+              lda #0
+              sta objpos+15
+              inc eggtimer
+               lda #$88 ;Egg sprite 
+              sta $07ff
+              lda #5
+              sta $d02e
+              jmp testpositionegg
+             
+
+              
+              ;Egg is released so activate it.
+releasetheegg
+              lda #0
+              sta eggtimer
+              sta eggdelay
+              lda #1
+              sta eggreleased
+             
+              rts 
+              
+dropegg       ;Drop the egg until it leaves the screen
+              jsr egg2bullet
+              lda objpos+15
+              clc
+              adc #2
+              cmp #$fa
+              bcc notoutborder
+              lda #0
+              sta eggreleased
+              sta eggtimer
+              rts
+notoutborder  sta objpos+15
+              rts
+              
+              ;Egg is not released so move it left/right in a fast pace behind the scene
+testpositionegg              
+          
+              lda eggdir
+              beq eggleft
+              
+              ;Egg moves right 
+              lda objpos+14
+              clc
+              adc #4
+              cmp #rightboundary
+              bcc storeeggright 
+              lda #0
+              sta eggdir
+              rts
+storeeggright sta objpos+14
+              rts 
+              
+              ;Egg moves left 
+eggleft       lda objpos+14
+              sec
+              sbc #3
+              cmp #leftboundary
+              bcs storeeggleft
+              lda #1
+              sta eggdir
+              rts
+storeeggleft  sta objpos+14
+              rts
+              
+;Special routine for egg 2 bullet since egg only 
+;falls and uses no X-movement. 
+
+egg2bullet      
+                lda objpos+14
+                beq .noeggshot
+                jsr mysterybonus
+                lda objpos+14
+                cmp collider+4
+                bcc .noeggshot
+                cmp collider+5
+                bcs .noeggshot
+                lda objpos+15
+                cmp collider+6
+                bcc .noeggshot
+                cmp collider+7
+                bcs .noeggshot
+                jmp setsbonusscorezone
+.noeggshot      rts             
+
+                
+mysterybonus    inc eggscore
+                lda eggscore
+                cmp #5
+                beq switcheggscore
+                rts 
+switcheggscore  lda #0
+                sta eggscore
+                rts
+                
+setsbonusscorezone
+                lda eggscore
+                sta scoretype
+                cmp #1
+                beq splat100ptsbounus
+                cmp #2
+                beq splat200ptsbonus
+                cmp #3
+                beq splat300ptsbonus
+                cmp #4
+                beq splat500ptsbonus
+                rts
+splat100ptsbounus
+                lda #$90
+                sta splatsm+1
+                lda #sfxeggshot
+                jsr sfxinit
+                jsr scorecheck
+                
+                lda #0
+                sta objpos+15
+                sta eggreleased
+                jmp dokillbullet
+splat200ptsbonus
+                lda #$91
+                sta splatsm+1
+                
+                lda #sfxeggshot
+                jsr sfxinit
+                jsr scorecheck
+                
+                lda #0
+                sta objpos+15
+                sta eggreleased
+                jmp dokillbullet 
+splat300ptsbonus
+                lda #$92
+                sta splatsm+1
+                
+                lda #sfxeggshot
+                jsr sfxinit
+                jsr scorecheck
+                
+                lda #0
+                sta objpos+15
+                sta eggreleased
+                jmp dokillbullet 
+splat500ptsbonus
+                lda #$93 
+                sta splatsm+1
+                
+                lda #sfxeggshot
+                jsr sfxinit
+                jsr scorecheck
+                lda #0
+                sta objpos+15
+                sta eggreleased
+                jmp dokillbullet
+                
+                
+;----------------------------------
+;The player has been hit by either 
+;the enemies or the egg or bullet 
+;either way, the player death 
+;should take place
+;---------------------------------
+
+destroyplayer ;Remove the swoopers and eggs
+          lda #0
+          sta objpos+5
+          sta objpos+7
+          sta objpos+9
+          sta objpos+11
+          sta objpos+13
+          sta objpos+15
+          lda #0
+                sta playerdeathdelay
+                sta playerdeathpointer
+                
+                ;Main explosion loop
+explodeloop     jsr synctimer
+          
+          ;Shift hawk fleet
+          jsr movehawx
+          
+          ;Player properties 
+      ;    jsr playercontrol
+          
+          lda #0
+          sta objpos+15
+          
+          sta eggreleased 
+          jsr exploder
+          jmp explodeloop
+          
+exploder
+          lda playerdeathdelay
+          lda playerdeathdelay 
+          cmp #3
+          beq animdeathnow
+          inc playerdeathdelay
+          rts
+animdeathnow
+          lda #0
+          sta playerdeathdelay
+          sta objpos+0
+          ldx playerdeathpointer
+          lda playerdeathframe,x
+          sta $07f9
+          inx
+          cpx #playerdeathframeend-playerdeathframe
+          beq lifelost
+          inc playerdeathpointer
+          rts
+lifelost  ldx #0
+          stx playerdeathpointer
+          dec lives
+          jsr updatepanel
+          lda lives
+          beq gameover 
+          
+          ;Reset player X position - y is ok
+          
+          lda #$54
+          sta objpos+4
+          
+          lda #$80 
+          sta $07f8
+          lda #0
+          sta enemy1xspeed
+          sta enemy2xspeed
+          sta enemy3xspeed
+          sta enemy4xspeed
+          sta eggreleased
+          sta objpos+12
+          jmp lifelostloop
+          
+gameover  lda #sfxgameover
+          jsr sfxinit
+          lda gameover1
+          sta $07f8
+          lda gameover2
+          sta $07f9
+          lda gameover3
+          sta $07fa
+          lda #$aa
+          sta objpos+1
+          sta objpos+3
+          sta objpos+5
+          lda #$4c
+          sta objpos
+          clc
+          adc #$0c
+          sta objpos+2
+          adc #$0c
+          sta objpos+4
+          lda #0 
+          sta waitdelay
+          lda score
+          sec 
+          lda hiscore+5
+          sbc score+5
+          lda hiscore+4
+          sbc score+4
+          lda hiscore+3
+          sbc score+3
+          lda hiscore+2
+          sbc score+2
+          lda hiscore+1
+          sbc score+1
+          lda hiscore
+          sbc score
+          bpl nohiscore
+          ldx #$00
+makenewhiscore
+          lda score,x
+          sta hiscore,x
+          inx
+          cpx #$06
+          bne makenewhiscore
+nohiscore          
+          jsr updatepanel
+gameoverloop
+          
+          jsr synctimer
+          
+          ;Shift hawk fleet
+          jsr movehawx
+          lda waitdelay
+          cmp #$e0
+          beq stopwait2
+          inc waitdelay
+          jmp gameoverloop 
+stopwait2
+          jmp titlescreen
               
 
               ;Import game pointers 

@@ -39,10 +39,6 @@ soundloopdelay !byte 0
 randtemp !byte $5a 
 random !byte %10011101,%01011011
 
-
-
-bonusegg !byte $88
-
 ;Animated swooping hawk objects
 hawktype1spr !byte $89 
 hawktype2spr !byte $8b 
@@ -54,8 +50,12 @@ playerbullet !byte $81
 playerdeath !byte $82
 
 ;Player death animation
-playerdeathframe !byte $82,$83,$84,$85,$86,$87
-playerdeathframeend !byte $ab
+playerdeathframe !byte $82,$83,$84,$85,$86,$87,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39
+playerdeathframeend !byte $39
+
+playerdeathpointer !byte 0
+playerdeathdelay !byte 0
+
 
 ;Enemy bullets that are dropped from 
 ;the swooping aliens 
@@ -74,6 +74,11 @@ enemy1dir !byte 0
 enemy2dir !byte 1
 enemy3dir !byte 0
 enemy4dir !byte 1
+eggreleased !byte 0
+eggdir !byte 0
+eggtimer !byte 0
+eggtimerexpiry !byte 200
+eggdelay !byte 0
 
 
 enemy1xspeed !byte 1
@@ -84,11 +89,6 @@ enemy4xspeed !byte 4
 enemyposx !byte 0
 enemyposy !byte 0
 
-;Score sprites 
-points100 !byte $8f
-points200 !byte $90
-points300 !byte $91
-points500 !byte $92
 
 ;Get READY sprite everytime a new level 
 ;or game starts, or the player lose a
@@ -120,6 +120,7 @@ hawk3backup1 !fill 17,0
 hawk3backup2 !fill 17,0
 hawk3backup3 !fill 17,0
 hawk3backup4 !fill 17,0
+
 ;Forcefield colour store pointers
 
 colourpointer !byte 0
@@ -138,7 +139,7 @@ selectpointer1 !byte 0
 selectpointer2 !byte 0
 selectpointer3 !byte 0
 selectpointer4 !byte 0
-
+eggscore !byte 0
 scoretype !byte 0
 
 ;Sprite collision table
@@ -224,6 +225,8 @@ spriteposxtable !byte $0a,$0e,$12,$16,$1a,$1e,$22,$26
                 !byte $4a,$4e,$52,$56,$5a,$5e,$62,$66
                 !byte $6a,$6e,$72,$76,$7a,$7e,$82,$86
                 !byte $8a,$8e,$92,$96,$9a,$9e,$a0,$a6
+                
+                
                
 !align $ff,0
        

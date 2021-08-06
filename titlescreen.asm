@@ -4,7 +4,7 @@
           ;interrupts 
           lda #$35
           sta $01
-          
+titlescreen         
           sei
           ldx #$48
           ldy #$ff
@@ -54,7 +54,9 @@
           sta $dae8,x
           inx
           bne .drawtitle
-          
+          lda #3
+          sta lives
+          jsr updatepanel
           ;Initialise the scroll text
           lda #<scrolltext
           sta messread+1
@@ -84,8 +86,10 @@
           lda #0
           jsr musicinit
           cli
+        
           ;After the interrupts have been setup jump to "titleloop"
           jmp titleloop
+          
           
           ;Create double IRQ interrupt for scrolling message 
           ;and playing music
@@ -98,6 +102,7 @@ irq1      sta tstacka1+1
           sta $dd0d
           lda #$2e
           sta $d012
+          
           lda xpos
           sta $d016 
           ldx #<irq2

@@ -53,7 +53,7 @@ backupchars
           bne backupchars
           
           
-          !source "titlescreen.asm"
+          jmp $8000 ;Title screen address
           
 ;=========================================          
           *=$1000
@@ -84,7 +84,10 @@ backupchars
           ;Sound effects 
           *=$7000
           !bin "bin\sfx.prg",,2
-          
+;=========================================
+          ;Title screen code 
+          *=$8000
+          !source "titlescreen.asm"
 ;=========================================          
           ;Scroll text 
           *=$9000

@@ -213,14 +213,14 @@
                lda posy 
                cmp #$42
                bcc .hawkbullnotshoot 
-               lda objpos+14
+               lda objpos+12
                beq .activate
 .hawkbullnotshoot
                rts
 .activate      lda posx 
-               sta objpos+14
+               sta objpos+12
                lda posy 
-               sta objpos+15
+               sta objpos+13
                lda #sfxplayershoot
                jsr sfxinit
                rts

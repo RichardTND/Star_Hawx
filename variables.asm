@@ -3,7 +3,7 @@
 
 scorepos = $0406
 levelpos = $040f 
-livespos = $0418
+livespos = $041b
 hiscorepos = $0422
 
 ;Zero page pointers
