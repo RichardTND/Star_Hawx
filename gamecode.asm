@@ -8,7 +8,6 @@ gamestart
           lda #$35
           sta $01
         
-          
           sei
           ldx #$48
           ldy #$ff
@@ -23,6 +22,7 @@ gamestart
           sta $d019
           sta $d021
           sta $d020
+          sta levelpointer
           lda #16
           sta spawndelayspeed
          
@@ -62,6 +62,10 @@ scorezero lda #$30
           inx
           cpx #6
           bne scorezero
+          lda #$30
+          sta level
+          lda #$31
+          sta level+1
           
           ;cli
           ;Setup IRQ raster interrupts
@@ -107,7 +111,8 @@ stacky    ldy #$00
 nmi       rti          
           
 gamerestart          
-          
+        
+
           ldx #$00
 drawgame  lda gamescreendata,x
           sta $0400,x
@@ -200,8 +205,25 @@ yelblured lda #$02
           clc
           adc #$0c
           sta objpos+2
-        
           
+          ;After the player loses a life, the 
+          ;sprites on screen are deducted
+          ;If no chars or sprites visible, 
+          ;level complete should be activated 
+          
+          jsr checklevelcomplete
+        
+          ldx levelpointer
+         lda levelspawntable,x 
+         sta maxhawksallowed
+         lda levelspeedtable,x
+         sta levelspeed
+         lda levelbulltable,x
+         sta levelbullspeed
+         inx
+         cpx #17
+         beq gamecomplete
+         
 startmode 
           jsr synctimer
           jsr movehawx 
@@ -211,30 +233,64 @@ startmode
           beq stopwait
           inc waitdelay
           jmp startmode  
+          
+gamecomplete
+
+          inc $d020
+          jmp *-3
 stopwait  
           ;Remove the player bullet from the screen before 
           ;it actually hits one of the space hawx 
-          
-          lda #0
-          sta objpos
-          sta hawktoshootdelay
-          sta hawktoshoot
+     
+        
           
           ;Setup player starting position 
-          
+          lda #0
+          sta hawktoshootdelay
+          sta hawktoshoot
+          sta hawkcount
           lda #playerhomeposx
           sta objpos+2
           lda #playerhomeposy
           sta objpos+3
           
+          lda #0
+          sta objpos+1
+          sta objpos
+          lda #$00
+          sta objpos+15
+          lda #$18
+          sta objpos+14
           ;Transform other sprite into player ship 
           ;Sprite 1 is being used instead of sprite 
           ;0 in order to prevent confusing the software 
           ;based sprite/sprite collision routine
-          
+        
+          lda #0
+          sta $d015 
           lda playership
           sta $07f9 
+          lda #$ff
+          sta $d015
          
+          lda #0
+          sta soundloopdelay
+          sta waitdelay
+          sta firebutton
+          sta hawktoshoot
+          sta eggtimer
+          sta eggdir 
+          sta eggdelay
+          sta spawndelay
+          sta objpos+4
+          sta objpos+6
+          sta objpos+8
+          sta objpos+10
+          lda #0
+          sta enemy1xspeed
+          sta enemy2xspeed
+          sta enemy3xspeed
+          sta enemy4xspeed
           
           
           
@@ -656,7 +712,7 @@ playerbulletactive
           beq nocontrol
           lda objpos+1
           sec
-          sbc #6
+          sbc #8
           cmp #bullettopboundary
           bcs storebullpos
           lda #$00
@@ -1035,8 +1091,8 @@ testbull
             sta $07fe 
             lda objpos+$0d
             clc
-            adc #3
-            cmp #$fa
+            adc levelbullspeed
+            cmp #$f8
             bcc notoffset
             lda #0
             sta objpos+$0c
@@ -1167,11 +1223,11 @@ randomselector   jsr cyclespriteposition
                 jsr cycleselection3
                 jsr cycleselection4
                 
-                lda spawndelay
-                cmp #4
-                beq spawnnextifpossible
-                inc spawndelay
-                rts 
+                ;lda spawndelay
+                ;cmp #2
+                ;beq spawnnextifpossible
+                ;inc spawndelay
+                ;rts 
 spawnnextifpossible                
                 lda #0
                 sta spawndelay
@@ -1246,7 +1302,7 @@ selectfleet4    ;lda #4
                 
 spawnnewenemycheck 
                 
-fleetcharsm     lda $cccc ;<- selfmod 
+fleetcharsm     lda $ffff ;<- selfmod 
                 cmp #hawktype1a 
                 bne .nothawk01a
                 jmp dospawnhawk1forwards
@@ -1731,6 +1787,7 @@ stordelay
                sta spawndelay
                sta selectorx
                jsr updatepanel
+               inc levelpointer
                jmp gamerestart
                rts           
            
@@ -1744,7 +1801,7 @@ selecthawkshoot
                
                jsr bulletdrop
                lda hawktoshootdelay
-               cmp #$20
+               cmp #$10
                bne _noselect
                lda #0
                sta hawktoshootdelay
@@ -1800,6 +1857,7 @@ bulletdrop    lda #$8f
 
 eggproperties 
               lda eggreleased
+             
               cmp #1
               bne eggnotreleasedyet
               jmp dropegg

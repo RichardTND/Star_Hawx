@@ -19,7 +19,6 @@ fleet4store1hi !byte 0
 ;Fleet selector to launch birds
 
 selectorx !byte 0
-selectory !byte 0
 spawnstopenabled !byte 0
 spawntime !byte 0
 spawndelay !byte 0
@@ -31,6 +30,9 @@ hawktoshootdelay !byte 0
 playerbulletdead !byte 0
 splatdelay !byte 0
 
+;Hawk counters
+hawkcount !byte 0
+maxhawksallowed !byte 1
 
 ;Randomizer 
 
@@ -77,9 +79,12 @@ enemy4dir !byte 1
 eggreleased !byte 0
 eggdir !byte 0
 eggtimer !byte 0
-eggtimerexpiry !byte 200
+eggtimerexpiry !byte 177
 eggdelay !byte 0
 
+levelpointer !byte 0
+levelspeed !byte 0
+levelbullspeed !byte 0
 
 enemy1xspeed !byte 1
 enemy2xspeed !byte 2
@@ -225,8 +230,29 @@ spriteposxtable !byte $0a,$0e,$12,$16,$1a,$1e,$22,$26
                 !byte $4a,$4e,$52,$56,$5a,$5e,$62,$66
                 !byte $6a,$6e,$72,$76,$7a,$7e,$82,$86
                 !byte $8a,$8e,$92,$96,$9a,$9e,$a0,$a6
-                
-                
+
+;Level settings ... There are 16 levels in total, they should be based on
+;the number of enemies that can spawn, hawk speed, and bullet speed 
+
+levelspawntable !byte $01,$02,$03,$04     
+              !byte $01,$02,$03,$04
+              !byte $01,$02,$03,$04
+              !byte $01,$02,$03,$04,$04
+
+levelspeedtable !byte $01,$01,$01,$01
+              !byte $01,$01,$01,$01
+              !byte $02,$02,$02,$02
+              !byte $03,$03,$03,$03 
+              
+levelbulltable
+
+              !byte $06,$06,$06,$06
+              !byte $08,$08,$08,$08 
+              !byte $08,$08,$08,$08
+              !byte $0a,$0a,$0a,$0a
+         
+         
+         
                
 !align $ff,0
        

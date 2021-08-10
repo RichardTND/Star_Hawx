@@ -107,6 +107,8 @@
               sta splatsm+1
               lda #sfxenemydeath1
               jsr sfxinit
+              dec hawkcount 
+              
               jmp .dorest
               
 .score200     lda #2
@@ -115,6 +117,8 @@
               sta splatsm+1
               lda #sfxenemydeath2
               jsr sfxinit
+              dec hawkcount 
+              
               jmp .dorest 
 .score300
               lda #3
@@ -123,6 +127,7 @@
               sta splatsm+1
               lda #sfxenemydeath3
               jsr sfxinit
+              dec hawkcount 
               
               
               ;Reposition enemy offset as well
@@ -185,6 +190,10 @@
             cmp #$00
             bne .notavailable
                       
+            lda hawkcount
+            cmp maxhawksallowed
+            beq .notavailable
+            
             lda #<animationsprite
             sta animsm+1
             lda #>animationsprite
@@ -194,11 +203,12 @@
             sta posx
             lda enemyposy
             sta posy
-            lda #1
+            lda levelspeed
             sta xspeed 
             jsr removeprocess
             lda #sfxswoop
             jsr sfxinit 
+            inc hawkcount
             rts
 .notavailable
 }
@@ -211,7 +221,7 @@
 
 !macro select_hawk_shoot posx, posy {
                lda posy 
-               cmp #$42
+               cmp #$68
                bcc .hawkbullnotshoot 
                lda objpos+12
                beq .activate

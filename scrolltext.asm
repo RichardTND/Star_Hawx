@@ -2,7 +2,7 @@
 
 scrolltext !text "   ... welcome to *** s t a r   h a w x *** ...   "
            !text "yet another fun early 1980's style arcade shooter ...    programming, graphics, sound effects "
-           !text "were all done by richard bayliss ...   music by richard bayliss ...   additional graphics were drawn by hugues "
+           !text "and music were all done by richard bayliss ...   additional graphics were drawn by hugues "
            !text "poisseroux ...  (c) 2021 the new dimension ...   plug a joystick into port 2 "
            !text "and prepare to do battle against the evil star hawx ...  shoot wave after wave against those star hawx in order to score points ...   "
            !text "beware, those nasties will want to try and attack your ship at times ...   when the star hawx swoop "
