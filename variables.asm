@@ -62,12 +62,23 @@ titlecolourdata = $33e8
 gamescreendata = $3800
 gamecolourdata = $3be8
 
+hiscreendata = $9800
+hicolourdata = $9be8
+
+nameentryscreen = $a000
+nameentrycolour = $a3e8
+
+endscreen = $b000
+endcolour = $b3e8
+
+namepos = $0576
+scoreposhi = $0583
+
 
 
 ;Music pointers
 musicinit = $1000
-musicplay = $1003 
- 
+musicplay = $1003
 ;Sound type 
 
 mainsfx = 0
@@ -115,3 +126,9 @@ playerhomeposy = $e2
 bullettopboundary = $1a
 
 justplaygame = 1 ;Just launch game
+
+
+namelen = 9
+scorelen = 6
+listlen = 10
+storbyt = $02

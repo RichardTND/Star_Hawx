@@ -52,8 +52,11 @@ backupchars
           cpx #$10
           bne backupchars
           
+          lda $02a6
+          sta system
+          jsr LoadHiScores
           
-          jmp $8000 ;Title screen address
+          jmp titlescreen ;Title screen address
           
 ;=========================================          
           *=$1000
@@ -85,6 +88,9 @@ backupchars
           *=$7000
           !bin "bin\sfx.prg",,2
 ;=========================================
+          *=$7800
+          !source "diskaccess.asm"
+         
           ;Title screen code 
           *=$8000
           !source "titlescreen.asm"
@@ -92,3 +98,17 @@ backupchars
           ;Scroll text 
           *=$9000
           !source "scrolltext.asm"
+;==========================================
+;Hall of fame table          
+          *=$9800
+          !bin"bin\halloffame.bin"
+;==========================================
+;Hall of fame name enty
+          *=$a000
+          !bin"bin\hiname.bin"
+          *=$a800
+!source "hiscore.asm"
+
+;End screen 
+          *=$b000
+          !bin "bin\endscreen.bin"

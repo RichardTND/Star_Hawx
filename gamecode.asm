@@ -66,6 +66,8 @@ scorezero lda #$30
           sta level
           lda #$31
           sta level+1
+          ldx #$fb
+          txs
           
           ;cli
           ;Setup IRQ raster interrupts
@@ -104,15 +106,30 @@ girq1     sta stacka+1
           sta $d012
           lda #1
           sta rt
-          jsr sfxplay
+          jsr sfxplayer
 stacka    lda #$00
 stackx    ldx #$00
 stacky    ldy #$00          
 nmi       rti          
+
+sfxplayer
+          lda system
+          cmp #1
+          beq pal2
+          inc ntsctimer
+          lda ntsctimer
+          cmp #6
+          beq resetntsc2
+pal2      jsr sfxplay
+          rts
+resetntsc2 
+          lda #0
+          sta ntsctimer
+          rts
           
 gamerestart          
         
-
+          
           ldx #$00
 drawgame  lda gamescreendata,x
           sta $0400,x
@@ -138,6 +155,12 @@ drawgame  lda gamescreendata,x
           sta $d011
 lifelostloop          
           ;Zero position all of the game sprites
+          ldx #$00
+.blankout lda #$39 ;Custom blank sprite 
+          sta $07f8,x
+          inx
+          cpx #$08
+          bne .blankout
           
           ldx #$00
 zerospritepos
@@ -213,7 +236,7 @@ yelblured lda #$02
           
           jsr checklevelcomplete
         
-          ldx levelpointer
+         ldx levelpointer
          lda levelspawntable,x 
          sta maxhawksallowed
          lda levelspeedtable,x
@@ -234,15 +257,9 @@ startmode
           inc waitdelay
           jmp startmode  
           
-gamecomplete
+gamecomplete jmp gamecompleteroutine
 
-          inc $d020
-          jmp *-3
 stopwait  
-          ;Remove the player bullet from the screen before 
-          ;it actually hits one of the space hawx 
-     
-        
           
           ;Setup player starting position 
           lda #0
@@ -335,6 +352,8 @@ synctimer
           beq *-3 
           jsr expandmsb
           jsr animator
+          jsr flashcolours
+          
           rts 
 ;--------------------------------------------
 ;Expand the game sprite position so that all
@@ -961,7 +980,7 @@ dokillbullet
 ;characters
 ;----------------------------------------
 
-animator    jsr flashcolours
+animator    
             lda animdelay
             cmp #4
             beq animmain
@@ -971,6 +990,7 @@ animmain    lda #0
             sta animdelay
             jsr animforcefield ;Animate forcefield chars
             jsr animstars      ;Animate blinking stars 
+          
             ldx animpointer
             lda hawkanim1,x
             sta hawktype1spr
@@ -1004,6 +1024,18 @@ animfield   lda forcefieldleft,x
             ror forcefieldright,x
             dex
             bpl animfield
+            rts 
+animchr            
+            ldx #$07
+animchars2  lda $2800+(60*8),x
+            asl
+            rol $2800+(60*8),x
+            lda $2800+(62*8),x
+            lsr
+            ror $2800+(62*8),x
+            dex
+            bpl animchars2
+            
             rts
             
             ;Flash the colour of the forcefield 
@@ -1223,11 +1255,11 @@ randomselector   jsr cyclespriteposition
                 jsr cycleselection3
                 jsr cycleselection4
                 
-                ;lda spawndelay
-                ;cmp #2
-                ;beq spawnnextifpossible
-                ;inc spawndelay
-                ;rts 
+                lda spawndelay
+                cmp #2
+                beq spawnnextifpossible
+                inc spawndelay
+                rts 
 spawnnextifpossible                
                 lda #0
                 sta spawndelay
@@ -1726,6 +1758,12 @@ removespritesmain
                 inx
                 cpx #$10
                 bne removespritesmain
+                ldx #$00
+.blankout2 lda #$39 ;Custom blank sprite 
+          sta $07f8,x
+          inx
+          cpx #$08
+          bne .blankout2
                ;Setup the LEVEL COMPLETE sprites 
                
                lda waveclear1
@@ -1751,6 +1789,22 @@ removespritesmain
                sta objpos+3
                sta objpos+5
                sta objpos+7
+               
+               ;Setup 1000 points bonus 
+         
+                     
+               inc score+2
+               ldx #2
+.bonuspoints   lda score,x
+               cmp #$3a
+               bne bonusok 
+               lda #$30
+               sta score,x
+               inc score-1,x
+bonusok        dex
+               bne .bonuspoints
+               
+               jsr updatepanel
                
                lda #0
                sta waitdelay
@@ -2104,8 +2158,16 @@ lifelost  ldx #0
           sta objpos+12
           jmp lifelostloop
           
-gameover  lda #sfxgameover
+gameover  ldx #$00
+.blankout3 lda #$39 ;Custom blank sprite 
+          sta $07f8,x
+          inx
+          cpx #$08
+          bne .blankout3
+          
+          lda #sfxgameover
           jsr sfxinit
+        
           lda gameover1
           sta $07f8
           lda gameover2
@@ -2125,6 +2187,21 @@ gameover  lda #sfxgameover
           sta objpos+4
           lda #0 
           sta waitdelay
+          jsr hiscorereader
+gameoverloop
+          
+          jsr synctimer
+          
+          ;Shift hawk fleet
+          jsr movehawx
+          lda waitdelay
+          cmp #$e0
+          beq stopwait2
+          inc waitdelay
+          jmp gameoverloop 
+stopwait2
+          jmp checkhiscore
+hiscorereader              
           lda score
           sec 
           lda hiscore+5
@@ -2149,21 +2226,84 @@ makenewhiscore
           bne makenewhiscore
 nohiscore          
           jsr updatepanel
-gameoverloop
-          
-          jsr synctimer
-          
-          ;Shift hawk fleet
-          jsr movehawx
-          lda waitdelay
-          cmp #$e0
-          beq stopwait2
-          inc waitdelay
-          jmp gameoverloop 
-stopwait2
-          jmp titlescreen
-              
+          rts
 
+;-----------------------------------------
+;Game complete screen
+;-----------------------------------------          
+gamecompleteroutine
+          
+         ;Setup the end screen
+         sei
+         lda #0
+         sta $d019
+         sta $d01a
+         lda #$81
+         sta $dc0d
+         sta $dd0d
+         ldx #$48
+         ldy #$ff
+         stx $fffe
+         sty $ffff
+         lda #0
+         sta $d015
+         ldx #$00
+copyendscreen
+         lda endscreen+40,x
+         sta $0400+40,x
+         lda endscreen+$100,x
+         sta $0500,x
+         lda endscreen+$200,x
+         sta $0600,x
+         lda endscreen+$2e8,x
+         sta $06e8,x
+         lda endcolour+40,x
+         sta $d800,x
+         lda endcolour+$100,x
+         sta $d900,x
+         lda endcolour+$200,x
+         sta $da00,x
+         lda endcolour+$2e8,x
+         sta $dae8,x 
+         inx
+         bne copyendscreen 
+         ldx #$00
+getgamecol 
+         lda gamescreendata,x
+         sta $0400,x
+         lda gamecolourdata,x
+         sta $d800,x
+         inx
+         cpx #40
+         bne getgamecol
+         jsr hiscorereader
+         lda #0
+         sta firebutton
+         lda #0
+         jsr $1000
+waitloopend           
+         lda #$f8
+         cmp $d012
+         bne *-3
+         jsr animator
+         jsr musicplayer
+       
+         lda $dc00
+         lsr
+         lsr
+         lsr
+         lsr
+         lsr
+         bit firebutton
+         ror firebutton
+         bmi waitloopend
+         bvc waitloopend
+         lda #0
+         sta firebutton
+         jmp checkhiscore
+         
+         
+         
               ;Import game pointers 
               
               !source "pointers.asm"

@@ -1,3 +1,6 @@
+!align $ff,0
+system !byte 0
+ntsctimer !byte 0
 waitdelay !byte 0
 animmode !byte 0
 
@@ -246,8 +249,8 @@ levelspeedtable !byte $01,$01,$01,$01
               
 levelbulltable
 
-              !byte $06,$06,$06,$06
-              !byte $08,$08,$08,$08 
+              !byte $04,$04,$04,$04
+              !byte $06,$06,$06,$06 
               !byte $08,$08,$08,$08
               !byte $0a,$0a,$0a,$0a
          
