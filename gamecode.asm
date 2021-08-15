@@ -36,7 +36,13 @@ gamestart
           sta eggdelay
           lda #3
           sta lives
-          
+           ;Initialise the player's shield 
+          lda #1
+          sta shieldavailable
+          lda #200
+          sta shieldtime
+          lda #0
+          sta shieldenabled
           lda #7
           sta $d022
           lda #6
@@ -213,6 +219,7 @@ yelblured lda #$02
           sta waitdelay
           lda #sfxgetready
           jsr sfxinit
+          
          
           
           ;Place the READY sprite onto the screen 
@@ -644,9 +651,38 @@ switchcharanim2
 ;Player control 
 ;----------------------------------------
 playercontrol
+          
+           jsr animationprocess
+           jsr shieldstatus
+
            jsr playerbulletcontrol
 
           ;Check joystick port 2, left 
+          lda #2
+          bit $dc00 
+          bne checkjoyleft 
+          
+          ;Down has been pressed, activate
+          ;the player shield - only if the
+          ;shield has NOT been enabled and 
+          ;is available 
+         
+          lda shieldavailable
+          beq checkjoyleft 
+          lda shieldenabled
+          cmp #1
+          beq checkjoyleft 
+          lda #255
+          sta shieldtime
+          ldx #0
+          stx playershieldpointer
+          lda #0
+          sta shieldavailable
+          lda #1
+          sta shieldenabled
+          lda #0
+          jsr sfxinit
+          
 checkjoyleft          
           lda #4 
           bit $dc00 
@@ -715,6 +751,59 @@ spawnnewbullet
           
 nocontrol
           rts          
+          
+shieldstatus
+          jsr checkshieldactivation
+          lda shieldavailable
+          cmp #1
+          beq indicate 
+          lda #$20
+          sta $0412
+          rts 
+indicate  lda #38
+          sta $0412
+          lda #4
+          sta $d812
+          rts 
+          
+checkshieldactivation
+          lda shieldenabled
+          cmp #1
+          beq docountdown 
+          
+          rts 
+docountdown
+          dec shieldtime
+          lda shieldtime
+          beq shieldout
+          rts
+shieldout lda #0
+          sta shieldenabled
+          rts
+          
+animationprocess
+          lda shieldenabled
+          cmp #1
+          beq animateplayershield
+          lda #$80   ;Default
+          sta $07f9
+          rts
+animateplayershield 
+          ldx playershieldpointer
+          lda shieldtable,x
+          sta $07f9
+          inx
+          cpx #4
+          beq loopshield
+          inc playershieldpointer
+          rts
+loopshield 
+          ldx #0
+          stx playershieldpointer
+          rts
+          
+          
+          
 ;----------------------------------------
 ;Player bullet control          
 ;----------------------------------------
@@ -1213,6 +1302,10 @@ spritetosprite
               ;a very simple loop 
               
 playertoenemy
+              lda shieldenabled
+              cmp #1
+              beq skipcollision
+              
               ldx #$00
 p2echeckloop              
               lda objpos+4,x
@@ -1231,7 +1324,7 @@ p2echeckloop
               lda #sfxplayerdeath
               jsr sfxinit
               jmp destroyplayer
-              
+skipcollision              
               rts
 playernothit  inx
               inx
@@ -2008,6 +2101,11 @@ egg2bullet
                 bcc .noeggshot
                 cmp collider+7
                 bcs .noeggshot
+                
+                ;Shooting an egg gives the player a shield 
+                
+                lda #1
+                sta shieldavailable
                 jmp setsbonusscorezone
 .noeggshot      rts             
 
@@ -2279,8 +2377,8 @@ getgamecol
          jsr hiscorereader
          lda #0
          sta firebutton
-         lda #0
-         jsr $1000
+         lda #1
+         jsr musicinit
 waitloopend           
          lda #$f8
          cmp $d012

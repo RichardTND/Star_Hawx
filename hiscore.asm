@@ -193,7 +193,7 @@ nameentry   ldx #$00
             lda #$1b
             sta $d011
             
-            lda #0
+            lda #1
             jsr musicinit 
 nameentryloop            
             lda #$f9

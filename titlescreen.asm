@@ -169,7 +169,7 @@ titleloop
 scroller          
           lda xpos 
           sec 
-          sbc #2
+          sbc #1
           and #7
           sta xpos
           bcs exitscr

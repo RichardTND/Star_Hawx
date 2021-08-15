@@ -53,6 +53,11 @@ hawktype3spr !byte $8c
 playership !byte $80    
 playerbullet !byte $81
 playerdeath !byte $82
+playershieldpointer !byte 0
+shieldavailable !byte 0
+shieldtime !byte 0
+shieldpointer !byte 0
+shieldenabled !byte 0
 
 ;Player death animation
 playerdeathframe !byte $82,$83,$84,$85,$86,$87,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39,$39
@@ -114,6 +119,9 @@ waveclear1 !byte $99
 waveclear2 !byte $9a
 waveclear3 !byte $9b
 waveclear4 !byte $9c
+
+playertable !byte $80,$80,$80,$80
+shieldtable !byte $9d,$9e,$9f,$80
 
 objpos !fill 16,0
 hawk1backup1 !fill 17,0

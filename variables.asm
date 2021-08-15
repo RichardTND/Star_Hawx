@@ -92,7 +92,7 @@ sfxeggshot = 7
 sfxgetready = 8
 sfxgameover = 9
 sfxlevelcomplete = 10
-
+sfxshield = 0
 
 sfxinit = $7000
 sfxplay = $7003
