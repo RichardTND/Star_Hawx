@@ -1,21 +1,55 @@
-!align $100,0
+!ct scr
+hiscorestart             
+hiscore1 !text "010000"
+name1 !text "presented"             
+hiscore2 !text "009000"
+name2 !text "for you  "
+hiscore3 !text "008000"
+name3 !text "by       "
+hiscore4 !text "007000"
+name4 !text "tnd games"
+hiscore5 !text "006000"
+name5 !text "for      "
+hiscore6 !text "005000"
+name6 !text "the all  "
+hiscore7 !text "004000"
+name7 !text "new      "
+hiscore8 !text "003000"
+name8 !text "zzap     "
+hiscore9 !text "002000"
+name9 !text "sixty    "
+hiscore10 !text "001000"
+name10 !text "four     "
+hiscoreend
 !ct scr
 name !text"         "
 nameend
 finalscore !byte 0,0,0,0,0,0
 checkhiscore
-           lda #$35
-           sta $01
-           ldx #$48
-           ldy #$ff
-           stx $fffe
-           sty $ffff
+hiscorechecker           
+           sei
+         
+        
+           lda #$81
+           sta $dc0d
+           sta $dd0d
            lda #$00
            sta $d01a
            sta $d019
+           lda #$f8
+           sta $d012     
+           lda #$00
            sta $d020
            sta $d021
            sta $d015
+           ldx #0
+sidout     lda #0
+           sta $d400,x
+           inx
+           cpx #$18
+           bne sidout
+           lda #0
+           sta $02
            
            ldx #$00
 .copyfinalscore
@@ -42,103 +76,90 @@ clrsid2    lda #$00
            sta namefinished
            sta joydelay 
            
-           ;Check if the player's score has reached a
-           ;position in the high score table.
-           
-           ldx #$00
-nextone    lda hslo,x
-           sta $c1
-           lda hshi,x
-           sta $c2 
-           
-           ;The hi score table position read is grabbed 
-           ;so check the player rank is higher than the
-           ;previous hiscores until reached the end
-           
-           ldy #$00
-scoreget   lda finalscore,y
-           cmp ($c1),y
-           bcc posdown
-           beq nextdigit 
-           bcs posfound
-nextdigit  iny
-           cpy #scorelen
-           bne scoreget
-           beq posfound
-posdown    inx
-           cpx #listlen
-           bne nextone
-           beq nohiscor
-posfound   stx storbyt
-           cpx #listlen-1
-           beq lastscor
-           
-           ;Move all hi scores and name ranks down
-           
-           ldx #listlen-1
-copynext   lda hslo,x
-           sta $c1
-           lda hshi,x
-           sta $c2
-           lda nmlo,x
-           sta $d1
-           lda nmhi,x
-           sta $d2 
-           dex
-           lda hslo,x
-           sta $c3
-           lda hshi,x
-           sta $c4
-           lda nmlo,x
-           sta $d3
-           lda nmhi,x
-           sta $d4
-           
-           ldy #scorelen-1
-copyscor   lda ($c3),y
-           sta ($c1),y 
-           dey
-           bpl copyscor
-           
-           ldy #namelen+1
-copyname   lda ($d3),y
-           sta ($d1),y
-           dey
-           bpl copyname
-           cpx storbyt 
-           bne copynext 
-           
-lastscor   ldx storbyt
-           lda hslo,x
-           sta $c1
-           lda hshi,x
-           sta $c2
-           lda nmlo,x
-           sta $d1
-           lda nmhi,x
-           sta $d2
-           
-           ;Call routine to allow player to sign name
-           
-           jmp nameentry 
-           
-           ;Place name to the new hi score
-           
-placenewscore
-            ldy #scorelen-1
-putscore    lda finalscore,y
-            sta ($c1),y
-            dey
-            bpl putscore
-            ldy #namelen-1
-putname     lda name,y
-            sta ($d1),y
-            dey
-            bpl putname
-            jsr SaveHiScore
-nohiscor            
-            jmp titlescreen
-            
+        
+                    ldx #$00
+nextone            lda hslo,x
+                    sta $c1
+                    lda hshi,x
+                    sta $c2
+                    
+                    
+                    ldy #$00
+scoreget           lda finalscore,y
+scorecmp           cmp ($c1),y
+                    bcc posdown
+                    beq nextdigit
+                    bcs posfound
+nextdigit          iny
+                    cpy #scorelen
+                    bne scoreget
+                    beq posfound
+posdown            inx
+                    cpx #listlen
+                    bne nextone
+                    beq nohiscor
+posfound           stx $02
+                    cpx #listlen-1
+                    beq lastscor
+                                      
+                    ldx #listlen-1
+copynext           lda hslo,x
+                    sta $c1
+                    lda hshi,x
+                    sta $c2
+                    lda nmlo,x
+                    sta $d1
+                    lda nmhi,x
+                    sta $d2
+                    dex
+                    lda hslo,x
+                    sta $c3
+                    lda hshi,x
+                    sta $c4
+                    lda nmlo,x
+                    sta $d3
+                    lda nmhi,x
+                    sta $d4
+                    ;Copy the scores from one zero page to 
+                    ;another. (which acts as a temp zp)
+                    ldy #scorelen-1
+copyscor            lda ($c3),y
+                    sta ($c1),y
+                    dey
+                    bpl copyscor 
+                    ;Do the same with the name. Since the names should move 
+                    ;if a position is found.
+                    ldy #namelen+1
+copyname            lda ($d3),y
+                    sta ($d1),y
+                    dey
+                    bpl copyname
+                    cpx $02
+                    bne copynext
+                    
+lastscor            ldx $02
+                    lda hslo,x
+                    sta $c1
+                    lda hshi,x
+                    sta $c2
+                    lda nmlo,x
+                    sta $d1
+                    lda nmhi,x
+                    sta $d2
+                    jmp nameentry
+placenewscore                     
+                    ldy #scorelen-1
+putscore            lda finalscore,y
+                    sta ($c1),y
+                    dey
+                    bpl putscore    
+                    ldy #namelen-1
+putname             lda name,y
+                    sta ($d1),y 
+                    dey
+                    bpl putname
+                    jsr SaveHiScore
+nohiscor            jmp titlescreen
 ;=====================================================
 ;The player has achieved a position in the high score
 ;table. Do name entry routine (operated by joystick)
@@ -190,17 +211,31 @@ nameentry   ldx #$00
             lda #>name
             sta namesm+2
             
-            lda #$1b
+            lda #$0b
             sta $d011
-            
+            ldx #<singleirq
+           ldy #>singleirq
+           stx $fffe
+           sty $ffff
+           lda #$7f
+           sta $dc0d
+           sta $dd0d
+           lda #$1b
+           sta $d011
+           lda #$01
+           sta $d019
+           sta $d01a 
+         
+           cli
             lda #1
             jsr musicinit 
 nameentryloop            
-            lda #$f9
-            cmp $d012
-            bne *-3
+            lda #0
+            sta rt
+            cmp rt
+            beq *-3
             jsr animator
-            jsr musicplayer
+           
             ldx #$00
 showname    lda name,x
             sta $06e0,x
@@ -218,6 +253,7 @@ showname    lda name,x
             jmp nameentryloop
             
 stopnameentry
+            
             jmp placenewscore
             
             ;Joystick check routine
@@ -350,6 +386,22 @@ skipcleanup   inx
               cpx #namelen 
               bne clearchars
               rts
+              
+singleirq     sta sstacka+1
+              stx sstackx+1
+              sty sstacky+1
+              asl $d019
+              lda $dc0d
+              sta $dd0d
+              lda #$00
+              sta $d012
+              jsr musicplayer
+              lda #1
+              sta rt
+sstacka       lda #0
+sstackx       ldx #0
+sstacky       ldy #0
+              rti
               
 joydelay !byte 0
 namefinished !byte 0

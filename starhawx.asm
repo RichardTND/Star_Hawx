@@ -55,7 +55,8 @@ backupchars
           lda $02a6
           sta system
           jsr LoadHiScores
-          
+          lda #$35
+          sta $01
           jmp titlescreen ;Title screen address
           
 ;=========================================          
@@ -89,7 +90,8 @@ backupchars
           !bin "bin\sfx.prg",,2
 ;=========================================
           *=$7800
-          !source "diskaccess.asm"
+          ;Hi score table screen
+          !bin "bin\halloffame.bin"
          
           ;Title screen code 
           *=$8000
@@ -99,14 +101,14 @@ backupchars
           *=$9000
           !source "scrolltext.asm"
 ;==========================================
-;Hall of fame table          
+      
           *=$9800
-          !bin"bin\halloffame.bin"
+          !source "diskaccess.asm"
 ;==========================================
 ;Hall of fame name enty
-          *=$a000
+          *=$c000
           !bin"bin\hiname.bin"
-          *=$a800
+          *=$c800
 !source "hiscore.asm"
 
 ;End screen 

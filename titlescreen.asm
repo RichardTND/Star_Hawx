@@ -7,11 +7,11 @@
           sta $01
 titlescreen         
           sei
-          ldx #$48
-          ldy #$ff
+      ;    ldx #$48
+      ;    ldy #$ff
           lda #$81
-          stx $fffe
-          sty $ffff
+       ;   stx $fffe
+       ;   sty $ffff
           sta $dc0d
           sta $dd0d
           lda #$00 ;Switch screen off during drawing 
@@ -46,7 +46,8 @@ titlescreen
           ldx #$00
 clearrow
           lda #$20
-          sta $0400,x
+          ;sta $0400,x
+          sta $07c0,x
           inx 
           cpx #40
           bne clearrow
@@ -169,7 +170,7 @@ titleloop
 scroller          
           lda xpos 
           sec 
-          sbc #1
+          sbc #2
           and #7
           sta xpos
           bcs exitscr
@@ -250,8 +251,8 @@ drawcredits
               ;Draw the title screen 
           ldx #$00
 .drawtitle
-          lda titlescreendata+40,x
-          sta $0400+40,x
+          lda titlescreendata,x
+          sta $0400,x
           lda titlescreendata+$100,x
           sta $0500,x
           lda titlescreendata+$200,x
@@ -270,14 +271,15 @@ drawcredits
           bne .drawtitle
           lda #1
           sta screenpage
+          
           rts
           
             ;Draw the hall of fame
 displayhiscore            
           ldx #$00
 .drawhiscore 
-          lda hiscreendata+40,x
-          sta $0400+40,x
+          lda hiscreendata,x
+          sta $0400,x
           lda hiscreendata+$100,x
           sta $0500,x
           lda hiscreendata+$200,x
@@ -362,34 +364,7 @@ screenpage !byte 0,0
 colourtable !byte $06,$04,$03,$01,$03,$04
 colourtableend !byte 0
 
-!ct scr
-welldonetext 
-             !text "     well done you are in the top 10    "
-             !text "        please enter your name          "
-             !text "         for the hall of fame           "
-             
-hiscorestart             
-hiscore1 !text "090000"
-name1 !text "presented"             
-hiscore2 !text "080000"
-name2 !text "for you  "
-hiscore3 !text "070000"
-name3 !text "by       "
-hiscore4 !text "060000"
-name4 !text "tnd games"
-hiscore5 !text "050000"
-name5 !text "for      "
-hiscore6 !text "040000"
-name6 !text "the all  "
-hiscore7 !text "030000"
-name7 !text "new      "
-hiscore8 !text "020000"
-name8 !text "zzap     "
-hiscore9 !text "010000"
-name9 !text "sixty    "
-hiscore10 !text "005000"
-name10 !text "four     "
-hiscoreend
+
 
 hslo !byte <hiscore1,<hiscore2,<hiscore3,<hiscore4,<hiscore5,<hiscore6,<hiscore7,<hiscore8,<hiscore9,<hiscore10
 hshi !byte >hiscore1,>hiscore2,>hiscore3,>hiscore4,>hiscore5,>hiscore6,>hiscore7,>hiscore8,>hiscore9,>hiscore10

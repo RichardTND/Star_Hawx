@@ -167,7 +167,7 @@
                 lda source2,x
                 sta target2 
                 inx
-                cpx #40
+                cpx #39
                 beq .recount 
                 inc mpointer
                 rts
@@ -184,7 +184,7 @@
 ;same hawk roughly at the same position the new sprite has been spawned to
 ;-------------------------------------------------------------------------  
 
-!macro spawnhawk xspeed, animationsprite, animsm, posx, posy, removeprocess {
+!macro spawnhawk xspeed, animationsprite, animsm, posx, posy, removeprocess, enemydir {
 
             lda xspeed
             cmp #$00
@@ -206,6 +206,12 @@
             lda levelspeed
             sta xspeed 
             jsr removeprocess
+          
+            inc temp
+            lda temp
+            and #1
+            sta enemydir
+           
             lda #sfxswoop
             jsr sfxinit 
             inc hawkcount
@@ -221,8 +227,10 @@
 
 !macro select_hawk_shoot posx, posy {
                lda posy 
-               cmp #$68
+               cmp #$32
                bcc .hawkbullnotshoot 
+               cmp #$f0
+               bcs .hawkbullnotshoot
                lda objpos+12
                beq .activate
 .hawkbullnotshoot

@@ -1,4 +1,4 @@
-!align $ff,0
+
 system !byte 0
 ntsctimer !byte 0
 waitdelay !byte 0
@@ -66,6 +66,7 @@ playerdeathframeend !byte $39
 playerdeathpointer !byte 0
 playerdeathdelay !byte 0
 
+eggtimerexpiry !byte 120
 
 ;Enemy bullets that are dropped from 
 ;the swooping aliens 
@@ -79,7 +80,7 @@ hawkanim2   !byte $8b,$8c
 hawkanim3   !byte $8d,$8e 
 
 ;Hawk movement direction
-
+propsstart
 enemy1dir !byte 0
 enemy2dir !byte 1
 enemy3dir !byte 0
@@ -87,12 +88,7 @@ enemy4dir !byte 1
 eggreleased !byte 0
 eggdir !byte 0
 eggtimer !byte 0
-eggtimerexpiry !byte 177
 eggdelay !byte 0
-
-levelpointer !byte 0
-levelspeed !byte 0
-levelbullspeed !byte 0
 
 enemy1xspeed !byte 1
 enemy2xspeed !byte 2
@@ -101,7 +97,12 @@ enemy4xspeed !byte 4
 
 enemyposx !byte 0
 enemyposy !byte 0
+temp !byte 0
+propsend
 
+levelpointer !byte 0
+levelspeed !byte 0
+levelbullspeed !byte 0
 
 ;Get READY sprite everytime a new level 
 ;or game starts, or the player lose a
@@ -159,25 +160,7 @@ eggscore !byte 0
 scoretype !byte 0
 
 ;Sprite collision table
-collider !byte 0,0,0,0,0,0,0,0
-
-!align $ff,0
-
-;Charset collision row table
-
-screenhi  !byte $04,$04,$04,$04,$04
-    !byte $04,$04,$05,$05,$05
-    !byte $05,$05,$05,$06,$06
-    !byte $06,$06,$06,$06,$06
-    !byte $07,$07,$07,$07,$07;,$07
-    
-screenlo  !byte $00,$28,$50,$78,$a0
-    !byte $c8,$f0,$18,$40,$68
-    !byte $90,$b8,$e0,$08,$30
-    !byte $58,$80,$a8,$d0,$f8 
-    !byte $20,$48,$70,$98,$c0;,$e0
-    
- !align $ff,0
+collider !byte 0,0,0,0,0,0,0,0,0
 
  ;Low/hi byte tables of possible positions for each 
  ;row, top and bottom. Where the pointers will pick 
@@ -205,12 +188,6 @@ fleet2table1lo !byte $c8,$c9,$ca,$cb,$cc,$cd,$ce,$cf
                !byte $e0,$e1,$e2,$e3,$e4,$e5,$e6,$e7 
                !byte $e8,$e9,$ea,$eb,$ec,$ed,$ee,$ef 
                
-fleet2table1hi !byte $04,$04,$04,$04,$04,$04,$04,$04
-               !byte $04,$04,$04,$04,$04,$04,$04,$04
-               !byte $04,$04,$04,$04,$04,$04,$04,$04
-               !byte $04,$04,$04,$04,$04,$04,$04,$04
-               !byte $04,$04,$04,$04,$04,$04,$04,$04 
-               
 fleet3table1lo !byte $40,$41,$42,$43,$44,$45,$46,$47
                !byte $48,$49,$4a,$4b,$4c,$4d,$4e,$4f 
                !byte $50,$51,$52,$53,$54,$55,$56,$57
@@ -223,24 +200,18 @@ fleet3table1hi !byte $05,$05,$05,$05,$05,$05,$05,$05
                !byte $05,$05,$05,$05,$05,$05,$05,$05
                !byte $05,$05,$05,$05,$05,$05,$05,$05 
                
-               
 fleet4table1lo !byte $b8,$b9,$ba,$bb,$bc,$bd,$be,$bf
                !byte $c0,$c1,$c2,$c3,$c4,$c5,$c6,$c7 
                !byte $c8,$c9,$ca,$cb,$cc,$cd,$ce,$cf
                !byte $d0,$d1,$d2,$d3,$d4,$d5,$d6,$d7 
                !byte $d8,$d9,$da,$db,$dc,$dd,$de,$df
                
-fleet4table1hi !byte $05,$05,$05,$05,$05,$05,$05,$05
-               !byte $05,$05,$05,$05,$05,$05,$05,$05 
-               !byte $05,$05,$05,$05,$05,$05,$05,$05
-               !byte $05,$05,$05,$05,$05,$05,$05,$05
-               !byte $05,$05,$05,$05,$05,$05,$05,$05
-               
 spriteposxtable !byte $0a,$0e,$12,$16,$1a,$1e,$22,$26
                 !byte $2a,$2e,$32,$36,$3a,$3e,$42,$46
                 !byte $4a,$4e,$52,$56,$5a,$5e,$62,$66
                 !byte $6a,$6e,$72,$76,$7a,$7e,$82,$86
-                !byte $8a,$8e,$92,$96,$9a,$9e,$a0,$a6
+                !byte $8a,$8e,$92,$96,$9a,$9e,$a2,$a6
+                
 
 ;Level settings ... There are 16 levels in total, they should be based on
 ;the number of enemies that can spawn, hawk speed, and bullet speed 
@@ -248,7 +219,7 @@ spriteposxtable !byte $0a,$0e,$12,$16,$1a,$1e,$22,$26
 levelspawntable !byte $01,$02,$03,$04     
               !byte $01,$02,$03,$04
               !byte $01,$02,$03,$04
-              !byte $01,$02,$03,$04,$04
+              !byte $01,$02,$03,$04
 
 levelspeedtable !byte $01,$01,$01,$01
               !byte $01,$01,$01,$01
@@ -261,11 +232,7 @@ levelbulltable
               !byte $06,$06,$06,$06 
               !byte $08,$08,$08,$08
               !byte $0a,$0a,$0a,$0a
-         
-         
-         
-               
-!align $ff,0
+
        
 score           !byte $30,$30,$30,$30,$30,$30 
 hiscore         !byte $30,$30,$30,$30,$30,$30

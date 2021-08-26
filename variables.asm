@@ -53,7 +53,7 @@ bulletcollisionright = $0c
 bulletcollisionup = $0c 
 bulletcollisiondown = $18
 
-zp=$70   
+zp= $70 
 
 ;Title and game screen data
 
@@ -62,11 +62,11 @@ titlecolourdata = $33e8
 gamescreendata = $3800
 gamecolourdata = $3be8
 
-hiscreendata = $9800
-hicolourdata = $9be8
+hiscreendata = $7800
+hicolourdata = $7be8
 
-nameentryscreen = $a000
-nameentrycolour = $a3e8
+nameentryscreen = $c000
+nameentrycolour = $c3e8
 
 endscreen = $b000
 endcolour = $b3e8

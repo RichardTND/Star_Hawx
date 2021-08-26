@@ -1,6 +1,7 @@
            !ct scr
 
-scrolltext !text "   ... >>> s t a r   h a w x <<< ...   a classic tribute to the classic arcade era of the early 1980's ...   "
+scrolltext !text "   ... hello there ...   welcome to my latest c64 game creation >>> s t a r   h a w x <<< ...   a tribute to the classic arcade era of the early 1980's ...   "
+           !text "brought to you by the all new zzap 64 magazine ...   the credits for this fun game are as follows: "
            !text "programming, graphics, sound effects by richard bayliss ... "
            !text "additional graphics by hugues (ax!s) poisseroux ...   tape loader system by martin piper ...   "
            !text "(c) 2021 the new dimension ...   plug a joystick into port 2 "

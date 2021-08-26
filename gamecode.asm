@@ -7,13 +7,21 @@ gamestart
           ;off all interrupts 
           lda #$35
           sta $01
-        
+          ldx #0
+initproperties
+          lda #0
+          sta propsstart
+          inx
+          cpx #propsend-propsstart 
+          bne initproperties
+          
+         
           sei
-          ldx #$48
-          ldy #$ff
-          lda #$81
-          stx $fffe
-          sty $ffff
+         ; ldx #$48
+         ; ldy #$ff
+         ; lda #$81
+         ; stx $fffe
+         ; sty $ffff
           sta $dc0d
           sta $dd0d
           lda #$00
@@ -25,15 +33,8 @@ gamestart
           sta levelpointer
           lda #16
           sta spawndelayspeed
-         
-          lda #0
-          sta soundloopdelay
-          sta waitdelay
-          sta firebutton
-          sta hawktoshoot
-          sta eggtimer
-          sta eggdir 
-          sta eggdelay
+          
+        
           lda #3
           sta lives
            ;Initialise the player's shield 
@@ -72,9 +73,15 @@ scorezero lda #$30
           sta level
           lda #$31
           sta level+1
-          ldx #$fb
-          txs
           
+          ldx #0
+putpanel  lda gamescreendata,x
+          sta $0400,x
+          lda gamecolourdata,x
+          sta $d800,x
+          inx
+          cpx #40
+          bne putpanel
           ;cli
           ;Setup IRQ raster interrupts
           ;sei
@@ -134,19 +141,29 @@ resetntsc2
           rts
           
 gamerestart          
-        
+          lda #0
+          sta soundloopdelay
+          sta waitdelay
+          sta firebutton
+          sta hawktoshoot
+          sta eggtimer
+          sta eggdir 
+          sta eggdelay
+          ;sta objpos+14
+          lda #$00
+          sta objpos+15
           
           ldx #$00
-drawgame  lda gamescreendata,x
-          sta $0400,x
+drawgame  lda gamescreendata+40,x
+          sta $0400+40,x
           lda gamescreendata+$100,x
           sta $0500,x
           lda gamescreendata+$200,x
           sta $0600,x
           lda gamescreendata+$2e8,x 
           sta $06e8,x 
-          lda gamecolourdata,x 
-          sta $d800,x
+          lda gamecolourdata+40,x 
+          sta $d800+40,x
           lda gamecolourdata+$100,x
           sta $d900,x
           lda gamecolourdata+$200,x
@@ -173,9 +190,9 @@ zerospritepos
           lda #$00
           sta objpos,x
           inx
-          cpx #16
+          cpx #14
           bne zerospritepos
-          
+          jsr expandmsb
           ;Force all sprites to be yellow, blue and red 
           ldx #$00
 yelblured lda #$02
@@ -207,16 +224,10 @@ yelblured lda #$02
           sta $d017
           sta $d01b
           sta $d01d
-          lda #0
-          sta enemy1xspeed
-          sta enemy2xspeed
-          sta enemy3xspeed
-          sta enemy4xspeed
-          sta spawnstopenabled
-          sta spawntime
-          sta playerbulletdead
+         
           lda #0 
           sta waitdelay
+         
           lda #sfxgetready
           jsr sfxinit
           
@@ -235,7 +246,7 @@ yelblured lda #$02
           clc
           adc #$0c
           sta objpos+2
-          
+          jsr expandmsb
           ;After the player loses a life, the 
           ;sprites on screen are deducted
           ;If no chars or sprites visible, 
@@ -253,7 +264,7 @@ yelblured lda #$02
          inx
          cpx #17
          beq gamecomplete
-         
+        
 startmode 
           jsr synctimer
           jsr movehawx 
@@ -281,10 +292,7 @@ stopwait
           lda #0
           sta objpos+1
           sta objpos
-          lda #$00
-          sta objpos+15
-          lda #$18
-          sta objpos+14
+          
           ;Transform other sprite into player ship 
           ;Sprite 1 is being used instead of sprite 
           ;0 in order to prevent confusing the software 
@@ -305,6 +313,8 @@ stopwait
           sta eggtimer
           sta eggdir 
           sta eggdelay
+          sta shieldenabled
+          sta shieldtime
           sta spawndelay
           sta objpos+4
           sta objpos+6
@@ -315,14 +325,16 @@ stopwait
           sta enemy2xspeed
           sta enemy3xspeed
           sta enemy4xspeed
-          
+          sta playerbulletdead
+          jsr expandmsb
           
           
 ;-------------------------------------------          
 ;Main game loop control
 ;-------------------------------------------          
-gameloop  jsr synctimer
-          
+gameloop
+          jsr synctimer
+         
           ;Collision detection
           jsr bullettohawkchars
           jsr spritemode
@@ -340,7 +352,7 @@ gameloop  jsr synctimer
           ;Collision detection sprite/sprite
           jsr spritetosprite
           
-          ;Randomiser
+          ;Randomiser - Hawk spawn
           jsr randomselector
           
           ;Hawk shooting properties
@@ -759,11 +771,15 @@ shieldstatus
           beq indicate 
           lda #$20
           sta $0412
+          sta $0413
           rts 
 indicate  lda #38
           sta $0412
+          lda #43
+          sta $0413
           lda #4
           sta $d812
+          sta $d813
           rts 
           
 checkshieldactivation
@@ -857,7 +873,7 @@ restorebull
 ;hawk chars
 ;-----------------------------------------
 
-           jsr spritetosprite 
+           ;jsr spritetosprite 
 
 bullettohawkchars
            lda playerbulletdead
@@ -1050,7 +1066,7 @@ killhawkright
             iny
             sta (zp+1),y
            
-            sta spawndelay
+            ;sta spawndelay
             dec spawndelayspeed
             jmp dokillbullet
             rts
@@ -1213,7 +1229,7 @@ testbull
             lda objpos+$0d
             clc
             adc levelbullspeed
-            cmp #$f8
+            cmp #$f4
             bcc notoffset
             lda #0
             sta objpos+$0c
@@ -1260,6 +1276,7 @@ testswoop4  +configfall objpos+11, enemy4xspeed
 ;----------------------------------------
 
 spritetosprite
+              
               lda objpos+2 
               sec
               sbc #playercollisionleft
@@ -1342,40 +1359,41 @@ enemy2bullet4  +enemy2bullet objpos+10, objpos+11, enemy4xspeed, $07fd
 ;-------------------------------------
 
 
-randomselector   jsr cyclespriteposition
+randomselector  
                 jsr cycleselection1
                 jsr cycleselection2
                 jsr cycleselection3
                 jsr cycleselection4
-                
-                lda spawndelay
-                cmp #2
-                beq spawnnextifpossible
-                inc spawndelay
+                jsr cyclespriteposition
+                jsr checkspawn 
                 rts 
+checkspawn                
+                
 spawnnextifpossible                
+                
                 lda #0
-                sta spawndelay
+                sta spawndelay        
                 jsr getrandom
-                and #$07
+                and #$03
                 sta selectrandompointer
                 lda selectrandompointer
-                cmp #1
+                cmp #0
                 bne .notselectfleet1
+                
                 jmp selectfleet1
 .notselectfleet1
-                cmp #2
+                cmp #1
                 bne .notselectfleet2
                 jmp selectfleet2 
 .notselectfleet2
-                cmp #3
+                cmp #2
                 bne .notselectfleet3 
                 jmp selectfleet3
 .notselectfleet3
-                cmp #4
+                cmp #3
                 bne .noselection 
                 jmp selectfleet4
-.noselection    rts
+.noselection    rts            
 
 ;A fleet row has been selected to check for the bird type ...
 
@@ -1515,8 +1533,8 @@ deletefromleft  lda fleetcharsm+1
                 sta delleftsm2+2
                 ldx #$00
 leftrub         lda #$20                
-delleftsm       sta $c000,x
-delleftsm2      sta $c028,x              
+delleftsm       sta $ffff,x
+delleftsm2      sta $ffff,x              
                 inx 
                 cpx #2
                 bne leftrub
@@ -1540,8 +1558,8 @@ deletefromright
                 
                 ldx #$00
 rightrub        lda #$20
-delrightsm     sta $c000,x 
-delrightsm2    sta $c028,x 
+delrightsm     sta $ffff,x 
+delrightsm2    sta $ffff,x 
                 inx
                 cpx #$02
                 bne rightrub
@@ -1552,68 +1570,70 @@ delrightsm2    sta $c028,x
 ;Cycle subroutines of the lo and hi byte table for 
 ;each of the enemy fleet objects
 ;--------------------------------------------------
+
 cycleselection1 +selection selectpointer1, fleet1table1lo, fleet1store1lo, fleet1table1hi, fleet1store1hi
-cycleselection2 +selection selectpointer2, fleet2table1lo, fleet2store1lo, fleet2table1hi, fleet2store1hi 
+cycleselection2 +selection selectpointer2, fleet2table1lo, fleet2store1lo, fleet1table1hi, fleet2store1hi 
 cycleselection3 +selection selectpointer3, fleet3table1lo, fleet3store1lo, fleet3table1hi, fleet3store1hi 
-cycleselection4 +selection selectpointer4, fleet4table1lo, fleet4store1lo, fleet4table1hi, fleet4store1hi                
+cycleselection4 +selection selectpointer4, fleet4table1lo, fleet4store1lo, fleet3table1hi, fleet4store1hi                
 
 
 cyclespriteposition ldx selectorx
                     lda spriteposxtable,x 
                     sta enemyposx
                     inx 
-                    cpx #40
+                    cpx #39
                     beq .resetspriteread
                     inc selectorx
                     rts
 .resetspriteread    ldx #0
                     stx selectorx
                     rts
+                    
 ;Spawn any of the hawk sprites where 
 ;available.
+
 spawnhawk1left
             
-            +spawnhawk enemy1xspeed, hawktype1spr, hawk1sm, objpos+4, objpos+5, deletefromleft
-            +spawnhawk enemy2xspeed, hawktype1spr, hawk2sm, objpos+6, objpos+7, deletefromleft
-            +spawnhawk enemy3xspeed, hawktype1spr, hawk3sm, objpos+8, objpos+9, deletefromleft
-            +spawnhawk enemy4xspeed, hawktype1spr, hawk4sm, objpos+10, objpos+11, deletefromleft
+            +spawnhawk enemy1xspeed, hawktype1spr, hawk1sm, objpos+4, objpos+5, deletefromleft, enemy1dir
+            +spawnhawk enemy2xspeed, hawktype1spr, hawk2sm, objpos+6, objpos+7, deletefromleft, enemy2dir
+            +spawnhawk enemy3xspeed, hawktype1spr, hawk3sm, objpos+8, objpos+9, deletefromleft, enemy3dir
+            +spawnhawk enemy4xspeed, hawktype1spr, hawk4sm, objpos+10, objpos+11, deletefromleft, enemy4dir
             rts
 spawnhawk1right
 
-            +spawnhawk enemy1xspeed, hawktype1spr, hawk1sm, objpos+4, objpos+5, deletefromright
-            +spawnhawk enemy2xspeed, hawktype1spr, hawk2sm, objpos+6, objpos+7, deletefromright
-            +spawnhawk enemy3xspeed, hawktype1spr, hawk3sm, objpos+8, objpos+9, deletefromright
-            +spawnhawk enemy4xspeed, hawktype1spr, hawk4sm, objpos+10, objpos+11, deletefromright
+            +spawnhawk enemy1xspeed, hawktype1spr, hawk1sm, objpos+4, objpos+5, deletefromright, enemy1dir
+            +spawnhawk enemy2xspeed, hawktype1spr, hawk2sm, objpos+6, objpos+7, deletefromright, enemy2dir
+            +spawnhawk enemy3xspeed, hawktype1spr, hawk3sm, objpos+8, objpos+9, deletefromright, enemy3dir
+            +spawnhawk enemy4xspeed, hawktype1spr, hawk4sm, objpos+10, objpos+11, deletefromright, enemy4dir
             rts            
 spawnhawk2left
             
-            +spawnhawk enemy1xspeed, hawktype2spr, hawk1sm, objpos+4, objpos+5, deletefromleft
-            +spawnhawk enemy2xspeed, hawktype2spr, hawk2sm, objpos+6, objpos+7, deletefromleft
-            +spawnhawk enemy3xspeed, hawktype2spr, hawk3sm, objpos+8, objpos+9, deletefromleft
-            +spawnhawk enemy4xspeed, hawktype2spr, hawk4sm, objpos+10, objpos+11, deletefromleft
+            +spawnhawk enemy1xspeed, hawktype2spr, hawk1sm, objpos+4, objpos+5, deletefromleft, enemy1dir
+            +spawnhawk enemy2xspeed, hawktype2spr, hawk2sm, objpos+6, objpos+7, deletefromleft, enemy2dir
+            +spawnhawk enemy3xspeed, hawktype2spr, hawk3sm, objpos+8, objpos+9, deletefromleft, enemy3dir
+            +spawnhawk enemy4xspeed, hawktype2spr, hawk4sm, objpos+10, objpos+11, deletefromleft,enemy4dir
             rts
 spawnhawk2right
 
-            +spawnhawk enemy1xspeed, hawktype2spr, hawk1sm, objpos+4, objpos+5, deletefromright
-            +spawnhawk enemy2xspeed, hawktype2spr, hawk2sm, objpos+6, objpos+7, deletefromright
-            +spawnhawk enemy3xspeed, hawktype2spr, hawk3sm, objpos+8, objpos+9, deletefromright
-            +spawnhawk enemy4xspeed, hawktype2spr, hawk4sm, objpos+10, objpos+11, deletefromright
+            +spawnhawk enemy1xspeed, hawktype2spr, hawk1sm, objpos+4, objpos+5, deletefromright, enemy1dir
+            +spawnhawk enemy2xspeed, hawktype2spr, hawk2sm, objpos+6, objpos+7, deletefromright, enemy2dir
+            +spawnhawk enemy3xspeed, hawktype2spr, hawk3sm, objpos+8, objpos+9, deletefromright, enemy3dir
+            +spawnhawk enemy4xspeed, hawktype2spr, hawk4sm, objpos+10, objpos+11, deletefromright, enemy4dir
             rts
 spawnhawk3left
             
-            +spawnhawk enemy1xspeed, hawktype3spr, hawk1sm, objpos+4, objpos+5, deletefromleft
-            +spawnhawk enemy2xspeed, hawktype3spr, hawk2sm, objpos+6, objpos+7, deletefromleft
-            +spawnhawk enemy3xspeed, hawktype3spr, hawk3sm, objpos+8, objpos+9, deletefromleft
-            +spawnhawk enemy4xspeed, hawktype3spr, hawk4sm, objpos+10, objpos+11, deletefromleft
-            
+            +spawnhawk enemy1xspeed, hawktype3spr, hawk1sm, objpos+4, objpos+5, deletefromleft, enemy1dir
+            +spawnhawk enemy2xspeed, hawktype3spr, hawk2sm, objpos+6, objpos+7, deletefromleft, enemy2dir
+            +spawnhawk enemy3xspeed, hawktype3spr, hawk3sm, objpos+8, objpos+9, deletefromleft, enemy3dir
+            +spawnhawk enemy4xspeed, hawktype3spr, hawk4sm, objpos+10, objpos+11, deletefromleft, enemy4dir
             rts
             
 spawnhawk3right
             
-            +spawnhawk enemy1xspeed, hawktype3spr, hawk1sm, objpos+4, objpos+5, deletefromright
-            +spawnhawk enemy2xspeed, hawktype3spr, hawk2sm, objpos+6, objpos+7, deletefromright
-            +spawnhawk enemy3xspeed, hawktype3spr, hawk3sm, objpos+8, objpos+9, deletefromright
-            +spawnhawk enemy4xspeed, hawktype3spr, hawk4sm, objpos+10, objpos+11, deletefromright
+            +spawnhawk enemy1xspeed, hawktype3spr, hawk1sm, objpos+4, objpos+5, deletefromright, enemy1dir
+            +spawnhawk enemy2xspeed, hawktype3spr, hawk2sm, objpos+6, objpos+7, deletefromright, enemy2dir
+            +spawnhawk enemy3xspeed, hawktype3spr, hawk3sm, objpos+8, objpos+9, deletefromright, enemy3dir
+            +spawnhawk enemy4xspeed, hawktype3spr, hawk4sm, objpos+10, objpos+11, deletefromright, enemy4dir
             
             rts
 ;General random routine                
@@ -1640,7 +1660,9 @@ getrandom       lda random+1
                 rts
                 
 ;---------------------------------------------------------
-;Game scoring routines 
+;Game scoring routines. These are based on the type of
+;hawk the player has shot down, and also the bonus egg
+;that falls from the screen.
 ;---------------------------------------------------------                
    
 scorecheck      
@@ -1677,9 +1699,20 @@ scoreok         dex
                 jsr updatepanel
                 jsr checklevelcomplete
             
-;Update panel with score 
+;Update panel with score, hiscore, lives 
                 
-updatepanel     ldx #$00
+updatepanel     lda shieldavailable
+                cmp #1
+                bne noshieldicon
+                lda #38
+                sta $0412
+                lda #4
+                sta $d812
+                jmp .next_
+noshieldicon    lda #$20
+                sta $0412
+.next_               
+                ldx #$00
 copyscore       lda score,x
                 sta scorepos,x
                 lda hiscore,x 
@@ -1838,7 +1871,9 @@ checkspeedloop lda enemy1xspeed,x
 .hawkexists    rts               
                
 ;---------------------------------------------
-;Level complete sequence
+;Level complete sequence. Remove all the 
+;other sprites, and then spawn the WELL
+;DONE sprites onto the screen.
 ;---------------------------------------------
 
                ;Remove all of the sprites 
@@ -1846,11 +1881,13 @@ showlevelcomplete
                ldx #$00
 removespritesmain
                lda #$00
-               sta $d000,x
+              
                sta objpos,x
                 inx
                 cpx #$10
                 bne removespritesmain
+
+                jsr expandmsb
                 ldx #$00
 .blankout2 lda #$39 ;Custom blank sprite 
           sta $07f8,x
@@ -1932,7 +1969,7 @@ stordelay
                
                lda #0
                sta spawndelay
-               sta selectorx
+              
                jsr updatepanel
                inc levelpointer
                jmp gamerestart
@@ -2060,7 +2097,7 @@ testpositionegg
               lda eggdir
               beq eggleft
               
-              ;Egg moves right 
+              ;Egg secretly moves right 
               lda objpos+14
               clc
               adc #4
@@ -2072,7 +2109,7 @@ testpositionegg
 storeeggright sta objpos+14
               rts 
               
-              ;Egg moves left 
+              ;Egg secretly moves left 
 eggleft       lda objpos+14
               sec
               sbc #3
@@ -2199,13 +2236,11 @@ destroyplayer ;Remove the swoopers and eggs
                 sta playerdeathpointer
                 
                 ;Main explosion loop
-explodeloop     jsr synctimer
+explodeloop     
+          jsr synctimer
           
           ;Shift hawk fleet
           jsr movehawx
-          
-          ;Player properties 
-      ;    jsr playercontrol
           
           lda #0
           sta objpos+15
@@ -2326,12 +2361,14 @@ nohiscore
           jsr updatepanel
           rts
 
-;-----------------------------------------
-;Game complete screen
-;-----------------------------------------          
+;------------------------------------------
+;Game complete screen. Animated as like the
+;title screen
+;------------------------------------------         
 gamecompleteroutine
           
          ;Setup the end screen
+         
          sei
          lda #0
          sta $d019
@@ -2339,12 +2376,17 @@ gamecompleteroutine
          lda #$81
          sta $dc0d
          sta $dd0d
-         ldx #$48
-         ldy #$ff
-         stx $fffe
-         sty $ffff
+       ;  ldx #$48
+       ;  ldy #$ff
+       ;  stx $fffe
+       ;  sty $ffff
          lda #0
          sta $d015
+         lda #$36
+         sta $0410
+         
+         lda #$0b
+            sta $d011
          ldx #$00
 copyendscreen
          lda endscreen+40,x
@@ -2377,12 +2419,24 @@ getgamecol
          jsr hiscorereader
          lda #0
          sta firebutton
+         sta $d015
+         ldx #<singleirq
+         ldy #>singleirq
+         lda #$7f
+         sta $dc0d
+         sta $dd0d
+         lda #$1b
+         sta $d011
+         lda #$01
+         sta $d01a
+         cli
          lda #1
          jsr musicinit
 waitloopend           
-         lda #$f8
-         cmp $d012
-         bne *-3
+         lda #0
+         sta rt
+         cmp rt
+         beq *-3
          jsr animator
          jsr musicplayer
        
