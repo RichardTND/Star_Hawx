@@ -1,0 +1,24 @@
+Loading Instructions:
+
+If using a stock C64 without any additional custom hardware. 
+
+DISK: 
+In BASIC type in LOAD"*",8. After loading, type RUN. 
+*** This game uses a hi score saver/loader so please keep disk attached ***
+*** If you want no hi-score saver, safely remove the disk and then switch the disk drive off ***
+
+TAPE:
+In BASIC press SHIFT and RUN STOP, press play on tape. The program should then load and run.
+
+MASTERING TO TAPE:
+A tape master disk has also been included with this package. To use the master software:
+
+* Insert disk and type in LOAD "*",8
+* Set your tape to a correct position for recording
+* Type RUN
+* The tape master will then operate, read from disk and write to tape
+
+Supplied by:
+The New Dimension
+http://richard-tnd.itch.io
+https://tnd64.unikat.sk

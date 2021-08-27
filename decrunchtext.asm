@@ -1,4 +1,4 @@
-!to "starhawx.prg",cbm
+!to "starhawxdisk.prg",cbm
 
 ;Link the Exomizer SFX crunched program here
 *=$0801

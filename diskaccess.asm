@@ -1,6 +1,6 @@
 
 dname:  !text "S:"
-fname:  !text "-HALL OF FAME-"
+fname:  !text "--HALL OF FAME--"
 fnamelen = *-fname
 dnamelen = *-dname
 
